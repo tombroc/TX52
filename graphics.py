@@ -3,18 +3,18 @@
 # -*-iso-8859-15 -*
 import os
 from tkinter import *
-
+ 
 
 class Application:
 	def _create_circle_arc(self, x, y, r, **kwargs):
-	    if "start" in kwargs and "end" in kwargs:
-	        kwargs["extent"] = kwargs["end"] - kwargs["start"]
-	        del kwargs["end"]
-	    return self.create_arc(x-r, y-r, x+r, y+r, **kwargs)
-	.Canvas.create_circle_arc = _create_circle_arc;
+		if "start" in kwargs and "end" in kwargs:
+			kwargs["extent"] = kwargs["end"] - kwargs["start"]
+			del kwargs["end"]
+			return self.create_arc(x-r, y-r, x+r, y+r, **kwargs)
+			.Canvas.create_circle_arc = _create_circle_arc;
 
 
-	def draw_radar(REAL_SCOPE, WIDTH_CANVAS, HEIGHT_CANVAS):
+			def draw_radar(REAL_SCOPE, WIDTH_CANVAS, HEIGHT_CANVAS):
 
 		# Detection zone 
 		# Coordon
@@ -34,13 +34,13 @@ class Application:
 			x += 10;
 			y += 10;
 
-		while x <= WIDTH_CANVAS:
-			canvas_c.create_line(x0, y0, x1+x, y1, fill='red');
-			x += 10;
-			y -= 10;
+			while x <= WIDTH_CANVAS:
+				canvas_c.create_line(x0, y0, x1+x, y1, fill='red');
+				x += 10;
+				y -= 10;
 
 
-	def __init__(self):
+				def __init__(self):
 
 		# GLOBAL VARIABLES
 		# CAPTOR SCALE
