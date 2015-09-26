@@ -3,7 +3,7 @@
 # -*-iso-8859-15 -*
 import os
 from tkinter import *
- 
+ ∏
 
 class Application:
 	def _create_circle_arc(self, x, y, r, **kwargs):
