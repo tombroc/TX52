@@ -14,15 +14,15 @@ class Application:
 
 	Canvas.create_circle_arc = _create_circle_arc;
 
-	def draw_radar(self, REAL_SCOPE, WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, canvas_c):
+	def draw_radar(self, REAL_SCOPE, WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, CANVAS_C):
 
 		# Detection zone 
 		
 		# Coordonnées
 
-		canvas_c.delete("all");
+		CANVAS_C.delete("all");
 		VIRTUAL_SCOPE = REAL_SCOPE * WIDTH_CANVAS / WIDTH_SCALE;
-		print(REAL_SCOPE);
+		
 		x0 = WIDTH_CANVAS / 2;
 		y0 = HEIGHT_CANVAS;
 
@@ -33,15 +33,15 @@ class Application:
 		y=x;
 
 		while x < WIDTH_CANVAS / 2:
-			canvas_c.create_line(x0, y0, x1+x, y1, fill='red');
+			CANVAS_C.create_line(x0, y0, x1+x, y1, fill='red');
 			x += 10;
 			y += 10;
 
 			while x <= WIDTH_CANVAS:
-				canvas_c.create_line(x0, y0, x1+x, y1, fill='red');
+				CANVAS_C.create_line(x0, y0, x1+x, y1, fill='red');
 				x += 10;
 				y -= 10;
-		return canvas_c;
+		return CANVAS_C;
 
 	def __init__(self):
 		#def main(self):
@@ -67,7 +67,7 @@ class Application:
 		WIDTH = win.winfo_width();
 		
 		# Label title
-		main_l = Label(win, text='Drones interseption simulation', font=("Purisa",12,"bold","italic"));
+		main_l = Label(win, text='Drones interception simulation', font=("Purisa",12,"bold","italic"));
 		main_l.grid(row=1,column=1,padx=10,pady=10);
 		
 		HEIGHT_CANVAS = HEIGHT*0.8;
@@ -81,21 +81,18 @@ class Application:
 		
 		# exit button
 		quit_b = Button(win,text='Quit',command=quit);
-		quit_b.grid(row=6,column=2,padx=10,pady=10);
+		quit_b.grid(row=20,column=2,padx=10,pady=10);
 
 		
 		# Scope scale
 		scale_l = Label(win, text='Scope value :');
 		scale_l.grid(row=3, column=2);
 		# scale_s = Scale(win, command=Application.draw_radar(self, REAL_SCOPE, WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, canvas_c));
-		scale_s = Scale(win, from_=1, to=REAL_SCOPE*2, length=300, orient=HORIZONTAL, command=lambda canvas_c = canvas_c: self.draw_radar(scale_s.get(), WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, canvas_c));
+		scale_s = Scale(win, from_=1, to=REAL_SCOPE*2, length=300, orient=HORIZONTAL, command=lambda CANVAS_C = canvas_c: self.draw_radar(scale_s.get(), WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, canvas_c));
 		scale_s.set(REAL_SCOPE);
 		#print(REAL_SCOPE);
 		scale_s.grid(row=4,column=2);
 
-		getscale_b = Button(win, text="Apply new scale", command=lambda canvas_c = canvas_c: self.draw_radar(scale_s.get(), WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, canvas_c))
-
-		getscale_b.grid(row=5, column=2);
 		self.draw_radar(scale_s.get(), WIDTH_CANVAS, HEIGHT_CANVAS, WIDTH_SCALE, canvas_c);
 
 		win.mainloop();
