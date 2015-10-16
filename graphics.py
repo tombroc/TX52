@@ -68,7 +68,7 @@ class Application():
 
 		VIRTUAL_SCOPE = REAL_SCOPE * HEIGHT_CANVAS / HEIGHT_SCALE;
 		
-		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list);
+		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, []);
 		
 		self.ennemi_list.append(thread_drone);
 
@@ -101,6 +101,7 @@ class Application():
 		self.drone_list = [];
 		self.ennemi_list = [];
 
+		label_list = [];
 		# Kind of a drone
 		KIND_ENNEMI = "ennemi";
 		KIND_ALLY = "ally";
@@ -118,7 +119,7 @@ class Application():
 		# Main window
 		self.win = Tk();
 		self.win.title("Drones interseption");
-		self.win.attributes('-fullscreen', 1);		
+		self.win.attributes('-fullscreen', True);		
 		
 		# Simulation zone
 		HEIGHT = self.win.winfo_height();
@@ -149,6 +150,7 @@ class Application():
 			num += 1;
 			name = "DRONE "+str(num)
 			name = Label(self.win, text=name, relief=RAISED, width=10, height=5, bg="green");
+			label_list.append(name);
 			if num < 3:
 				name.grid(row=6, column=num+1);
 			elif num < 5:
@@ -170,5 +172,5 @@ class Application():
 		#---------------------------------------------------------------------------------------------------------------#
 
 
-		self.radar = Radar(self.drone_list, self.ennemi_list, self.CANVAS_C);
+		self.radar = Radar(self.drone_list, self.ennemi_list, self.CANVAS_C, label_list);
 		self.win.mainloop();
