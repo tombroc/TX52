@@ -17,7 +17,7 @@ WIDTH_CANVAS = 0;
 NUMBER_ALLY_DRONE = 1;
 CONTINUE = True;
 
-class Application():
+class Window():
 
 	def get_height_canvas(self):
 		return HEIGHT_CANVAS;
@@ -30,6 +30,9 @@ class Application():
 
 	def get_CANVAS_C(self):
 		return self.CANVAS_C;
+
+	def get_intruder_b(self):
+		return self.intruder_b;
 
 	def get_label_list(self):
 		return self.label_list;
@@ -98,9 +101,6 @@ class Application():
 
 	def get_canvas(self):
 		return self.CANVAS_C;
-
-	def get_app(self):
-		return self;
 	
 	def exit(self):
 		global CONTINUE;
