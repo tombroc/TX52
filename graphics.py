@@ -14,7 +14,7 @@ VIRTUAL_SCOPE = 0;
 HEIGHT_SCALE = 400;
 HEIGHT_CANVAS = 0;
 WIDTH_CANVAS = 0;
-NUMBER_ALLY_DRONE = 1;
+NUMBER_ALLY_DRONE = 2;
 CONTINUE = True;
 
 class Window():
@@ -28,7 +28,7 @@ class Window():
 	def get_ennemi_list(self):
 		return self.ennemi_list;
 
-	def get_CANVAS_C(self):
+	def get_canvas(self):
 		return self.CANVAS_C;
 
 	def get_intruder_b(self):
@@ -97,10 +97,6 @@ class Window():
 
 		code = 1;
 		return code;
-
-
-	def get_canvas(self):
-		return self.CANVAS_C;
 	
 	def exit(self):
 		global CONTINUE;

@@ -31,11 +31,11 @@ if __name__ == '__main__':
 		X = Win.get_width_canvas()/2;
 		Y = Win.get_height_canvas()+10;
 		Z = 0;
-		drone = Drone("ally", i, Win.get_CANVAS_C(), X, Y, Z, Win.get_ennemi_list(), Win.get_label_list()[i]);
+		drone = Drone("ally", i, Win.get_canvas(), X, Y, Z, Win.get_ennemi_list(), Win.get_label_list()[i]);
 		drone_list.append(drone);
 
 
-	Radar = Radar(drone_list, Win.get_ennemi_list(), Win.get_CANVAS_C(), Win.get_label_list(), Win.get_intruder_b());
+	Radar = Radar(drone_list, Win.get_ennemi_list(), Win.get_canvas(), Win.get_label_list(), Win.get_intruder_b());
 	Radar.start();
 
 	Win.get_window().mainloop();
