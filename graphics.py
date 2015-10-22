@@ -19,6 +19,9 @@ CONTINUE = True;
 
 class Window():
 
+	def get_noDrone_l(self):
+		return self.noDrone_l;
+		
 	def get_height_canvas(self):
 		return HEIGHT_CANVAS;
 
@@ -178,6 +181,8 @@ class Window():
 				name.grid(row=7, column=num+1-2);
 			else:
 				name.grid(row=8, column=num+1-4);
+
+		self.noDrone_l = Label(self.win, text="No drone available", relief=RAISED);
 
 		# Add "ennemi" button
 		self.intruder_b = Button(self.win, text='Add intruder', command=lambda code=retour: self.add_ennemi(KIND_ENNEMI, 0));
