@@ -1,0 +1,6 @@
+TODO :
+	- Transférer le contenu de add_intruder dans le Thread Drone
+	- Faire en sorte qu'une fois dans la zone le Drone ennemi tourne en rond jusqu'à son interception
+	- Créer une mémoire partagée entre tous les Threads et remplie par le programme principal qui va contenir les coordonnées du Drone ennemi
+	- La fonction qui rempli la mémoire paragée sera PEUT ETRE un Thread -> chaque Thread commence par lire la mémoire partagée et calule une trajectoire vers ce point
+	- Gérer la collision et le retour au bercail de drones encore valides

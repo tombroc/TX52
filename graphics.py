@@ -104,6 +104,7 @@ class Window():
 	def exit(self):
 		global CONTINUE;
 		CONTINUE = False;
+		time.sleep(0.2);
 		quit();
 
 	def __init__(self):
@@ -172,11 +173,12 @@ class Window():
 		# Drones label
 		while num < 6:
 			num += 1;
-			name = "DRONE "+str(num)
-			name = Label(self.win, text=name, relief=RAISED, width=10, height=5, bg="green");
+			name = "DRONE "+str(num);
+			name = Label(self.win, text=name+"\nReady", relief=RAISED, width=10, height=5, bg="green");
 			self.label_list.append(name);
 			if num < 3:
 				name.grid(row=6, column=num+1);
+
 			elif num < 5:
 				name.grid(row=7, column=num+1-2);
 			else:
