@@ -14,19 +14,19 @@ ennemi_event = Event();
 drone_event.set();
 ennemi_event.set();
 
-t = 0.001;
-loop_number  = 1;
+t                    = 0.001;
+loop_number          = 1;
 
-drone_out    = 0;
-drone_ready  = 2;
-drone_flying = 3;
-drone_back   = 4;	# Drone back of a mission ready for inspection
-drone_ennemi_ready = 7;
-drone_ennemi_escaped  = 8;
+drone_out            = 0;
+drone_ready          = 2;
+drone_flying         = 3;
+drone_back           = 4;	# Drone back of a mission ready for inspection
+drone_ennemi_ready   = 7;
+drone_ennemi_escaped = 8;
 
 class Drone(Thread):
 
-	def __init__(self, kind, identifier, CANVAS_C, X, Y, Z, ennemi_list, label):
+	def __init__(self, kind, identifier, CANVAS_C, X, Y, Z, ennemi_list, drone_list, label):
 		Thread.__init__(self);
 		drone_ready          = 2;	# Drone on his spot and operational
 		drone_ennemi_ready   = 7;	# Drone ennemi ready
@@ -52,6 +52,7 @@ class Drone(Thread):
 			color            = "blue";
 			position         = "nw"
 			state            = drone_ready;
+			self.drone_list  = drone_list;
 			self.ennemi_list = ennemi_list;
 			self.name_t      = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);	
 			
@@ -98,6 +99,32 @@ class Drone(Thread):
 			return True;
 		else:
 			return False;
+
+
+	def check_trajectory(self, identifier, dX, dY, dZ):
+		for ally in self.drone_list:
+			if ally.id != identifier and ally.state == drone_flying:
+				dist = sqrt( ((self.X + dX) - ally.X)**2 + ((self.Y + dY) - ally.Y)**2 );
+				print ("dist = " +str(dist)+ " diameter = "+str(self.diameter))
+				if  dist <= self.diameter:# and (self.Z + dZ) == ally.Z :
+					# The drone must change his trajectory
+					if self.X < ally.X:
+						self.X = self.go_left(dX);
+					else: 
+						self.X = self.go_right(dX);
+
+					if self.Y < ally.Y:
+						self.Y = self.go_straight(dY);
+					#else: 
+					#	self.Y = self.go_right(dY);
+
+
+					return True;
+				else:
+					return False;
+
+
+
 
 	def ennemi_movement(self):
 		dY = 1;
@@ -187,6 +214,8 @@ class Drone(Thread):
 			ennemi_event.set();
 			time.sleep(t);
 			drone_event.wait();
+			
+			# Best trajectory to intercept the intruder
 
 			dY = 2;
 			try:
@@ -206,29 +235,34 @@ class Drone(Thread):
 			except:
 				dZ = 1;
 			
+			# Check if there is an ally in where the trajectory goes
 
-			if self.X > self.ennemi_list[0].X:
-				self.X = self.go_left(dX);
-				dX = dX * -1; 
-			elif self.X < self.ennemi_list[0].X:
-				self.X = self.go_right(dX);
-			else:
-				dX = 0;
+			if not self.check_trajectory(self.id, dX, dY, dZ):
+				print ("False")
+				# No collision with the next move => normal progression
+				if self.X > self.ennemi_list[0].X:
+					self.X = self.go_left(dX);
+					dX = dX * -1; 
+				elif self.X < self.ennemi_list[0].X:
+					self.X = self.go_right(dX);
+				else:
+					dX = 0;
 
-			if self.Y > self.ennemi_list[0].Y:
-				self.Y = self.go_straight(dY);
-				dY = dY * -1;
-			elif self.Y < self.ennemi_list[0].Y:
-				self.Y = self.go_back(dY);
-			else:
-				dY = 0;
+				if self.Y > self.ennemi_list[0].Y:
+					self.Y = self.go_straight(dY);
+					dY = dY * -1;
+				elif self.Y < self.ennemi_list[0].Y:
+					self.Y = self.go_back(dY);
+				else:
+					dY = 0;
 
-			if self.Z > self.ennemi_list[0].Z:
-				self.Z = self.go_down(dZ);
-			elif self.Z < self.ennemi_list[0].Z:
-				self.Z = self.go_up(dZ);
-
-
+				if self.Z > self.ennemi_list[0].Z:
+					self.Z = self.go_down(dZ);
+				elif self.Z < self.ennemi_list[0].Z:
+					self.Z = self.go_up(dZ);
+			
+			else : 
+				print("True")
 			#print("self.X = "+str(self.X)+" dX = "+str(dX))
 			self.canvas.move(self.drone, dX, dY);
 			self.canvas.move(self.alt_t, dX, dY);

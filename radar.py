@@ -59,6 +59,7 @@ class Radar(Thread):
 			if intruder == 1:
 				i = 0;
 				num = 0;
+				print (g.NUMBER_ALLY_DRONE)
 				while num < g.NUMBER_ALLY_DRONE and i < 6:
 					if self.drone_list[i].state == drone_ready:
 						print ("Drone "+str(i)+" ready");

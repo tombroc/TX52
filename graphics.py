@@ -74,7 +74,7 @@ class Window():
 		while r < VIRTUAL_SCOPE:
 			self.CANVAS_C.create_circle_arc(x0, y0, r, style='arc', outline="red", width=2, start=0, end=180, tags="arcs");
 			r += 10;
-		code = 1;
+		code = 1
 		return code;
 
 	def add_ennemi(self, KIND, IDENTIFIER):
@@ -92,20 +92,38 @@ class Window():
 		Z = 200;
 		self.warning_l.grid_forget();
 
-		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, []);
+		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, [], []);
 		
 		self.ennemi_list.append(thread_drone);
 
 		thread_drone.start();
 
-		code = 1;
-		return code;
 	
-	def exit(self):
+	def exit(self, window, value):
 		global CONTINUE;
-		CONTINUE = False;
+		CONTINUE = value;
 		time.sleep(0.2);
-		quit();
+		window.destroy();
+
+	def updateSettings(self, window):
+		global NUMBER_ALLY_DRONE;
+		
+		print("Updating settings...");
+		NUMBER_ALLY_DRONE = self.nbDroneByAttack_s.get();
+		print ("Number ally drone = "+str(NUMBER_ALLY_DRONE));
+		self.exit(window, True);
+
+	def settings_window(self):
+		#Settings window
+		self.settings = Tk();
+		self.settings.title("Settings");
+		self.settings.geometry("%dx%d%+d%+d" % (200,200,0,0));
+		self.nbDroneByAttack_s = Scale(self.settings, from_=1, to=6, orient=HORIZONTAL);
+		self.nbDroneByAttack_s.set(NUMBER_ALLY_DRONE)
+		self.nbDroneByAttack_s.grid(row=1, column=1);
+		self.updateSettings_b = Button(self.settings, text="Validate", command=lambda:self.updateSettings(self.settings));
+		self.updateSettings_b.grid(row=2, column=1);
+		self.settings.mainloop();
 
 	def __init__(self):
 
@@ -133,6 +151,7 @@ class Window():
 
 		num = 0;
 
+		
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
@@ -166,7 +185,7 @@ class Window():
 		# Scope scale
 		self.scale_l = Label(self.win, text='Scope value :');
 		self.scale_l.grid(row=3, column=2, columnspan=2);
-		self.scale_s = Scale(self.win, from_=1, to=REAL_SCOPE*2, orient=HORIZONTAL, length=300, command=lambda code=retour: self.draw_radar());
+		self.scale_s = Scale(self.win, from_=1, to=REAL_SCOPE*2, orient=HORIZONTAL, length=300, command=lambda code=retour:self.draw_radar());
 		self.scale_s.set(REAL_SCOPE);
 		self.scale_s.grid(row=4, column=2, columnspan=2);
 		
@@ -187,16 +206,25 @@ class Window():
 		self.noDrone_l = Label(self.win, text="No drone available", relief=RAISED);
 
 		# Add "ennemi" button
-		self.intruder_b = Button(self.win, text='Add intruder', command=lambda code=retour: self.add_ennemi(KIND_ENNEMI, 0));
+		self.intruder_b = Button(self.win, text='Add target', image=∏PhotoImage(file='cible.gif'), command=lambda: self.add_ennemi(KIND_ENNEMI, 0));
 		self.intruder_b.grid(row=5, column=2, columnspan=2);
 
-		# exit button
-		self.quit_b = Button(self.win,text='Exit', command=lambda:self.exit());
+		# Settings
+		#self.settings_i = PhotoImage(file="settings.gif");
+		self.settings_b = Button(self.win, text="Settings", command=lambda:self.settings_window());#image=self.settings_i);
+		self.settings_b.grid(row=20, column=2);
 
-		self.quit_b.grid(row=20, column=2, padx=10, pady=10);
+		# exit button
+		self.quit_b = Button(self.win,text='Exit', command=lambda:self.exit(self.win, False));
+
+		self.quit_b.grid(row=20, column=3, padx=10, pady=10);
 		
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
+
+		
+
+
 
