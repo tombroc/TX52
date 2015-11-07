@@ -28,8 +28,8 @@ if __name__ == '__main__':
 	print ("---- Drones 1 to 6 initialization ----");
 	for i in range(6):
 		print ("Drone : "+ str(i+1));
-		X = Win.get_width_canvas()/2 + 100*i;
-		Y = Win.get_height_canvas()-20;
+		X = (Win.get_width_canvas() - 6 * 100) /2 + 100*i;
+		Y = Win.get_height_canvas() - 20;
 		Z = 0;
 		drone = Drone("ally", i, Win.get_canvas(), X, Y, Z, Win.get_ennemi_list(), drone_list, Win.get_label_list()[i]);
 		drone_list.append(drone);
