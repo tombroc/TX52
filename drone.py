@@ -52,6 +52,7 @@ class Drone(Thread):
 			color            = "blue";
 			position         = "nw"
 			state            = drone_ready;
+			self.speed       = 2;
 			self.drone_list  = drone_list;
 			self.ennemi_list = ennemi_list;
 			self.name_t      = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);	
@@ -122,9 +123,6 @@ class Drone(Thread):
 					return True;
 				else:
 					return False;
-
-
-
 
 	def ennemi_movement(self):
 		dY = 1;
@@ -217,59 +215,34 @@ class Drone(Thread):
 			
 			# Best trajectory to intercept the intruder
 
-			dY = 2;
-			try:
-				
-				dX = (abs(self.X-self.ennemi_list[0].X) + (abs(self.Y-self.ennemi_list[0].Y)))/(abs(self.Y-self.ennemi_list[0].Y));
-				print ("dX/dY = "+str(dX/dY))
-				if dX/dY > 8:
-					print ("dX too big => replacement : "+str(dX)+" => 1")
-					dX = dX/2;
-			except:
-				# if self.Y == self.ennemi_list[0].Y then calculation is not possible so :
-				dX = 1;
+			# Direction vector between drone and ennemi
 
+			a = self.ennemi_list[0].X - Self.X;
+			b = self.ennemi_list[0].Y - Self.Y;
+			c = self.ennemi_list[0].Z - Self.Z;
 
-			try:
-				dZ = abs(self.Z-self.ennemi_list[0].Z)/abs(self.Y-self.ennemi_list[0].Y);
-			except:
-				dZ = 1;
+			# Parameter t
+
+			t = self.speed * sqrt(1/(a**2 + b**2 + c**2));
+
+			# New coordinnates for the drone (using parametric system)
+
+			newX = self.X + t * a;
+			newY = self.Y + t * b;
+			newZ = self.Z + t * c;
 			
-			# Check if there is an ally in where the trajectory goes
-
-			if not self.check_trajectory(self.id, dX, dY, dZ):
-				print ("False")
-				# No collision with the next move => normal progression
-				if self.X > self.ennemi_list[0].X:
-					self.X = self.go_left(dX);
-					dX = dX * -1; 
-				elif self.X < self.ennemi_list[0].X:
-					self.X = self.go_right(dX);
-				else:
-					dX = 0;
-
-				if self.Y > self.ennemi_list[0].Y:
-					self.Y = self.go_straight(dY);
-					dY = dY * -1;
-				elif self.Y < self.ennemi_list[0].Y:
-					self.Y = self.go_back(dY);
-				else:
-					dY = 0;
-
-				if self.Z > self.ennemi_list[0].Z:
-					self.Z = self.go_down(dZ);
-				elif self.Z < self.ennemi_list[0].Z:
-					self.Z = self.go_up(dZ);
-			
-			else : 
-				print("True")
 			#print("self.X = "+str(self.X)+" dX = "+str(dX))
-			self.canvas.move(self.drone, dX, dY);
-			self.canvas.move(self.alt_t, dX, dY);
-			self.canvas.move(self.name_t, dX, dY);
-			self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
+			self.canvas.move(self.drone, newX-self.X, newY-self.Y);
+			self.canvas.move(self.alt_t, newX-self.X, newY-self.Y);
+			self.canvas.move(self.name_t, newX-self.X, newY-self.Y);
+			self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(newZ))+"m");
 			self.canvas.update();
 
+			# Update of the drone coordinates
+
+			self.X = newX;
+			self.Y = newY;
+			self.Z = newZ;
 
 			# print ("\nX : "+str(int(self.X))+" "+str(int(self.ennemi_list[0].X)));
 			# print ("Y : "+str(int(self.Y))+" "+str(int(self.ennemi_list[0].Y)));
