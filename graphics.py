@@ -72,7 +72,8 @@ class Window():
 		r = 20;
 
 		while r < VIRTUAL_SCOPE:
-			self.CANVAS_C.create_circle_arc(x0, y0, r, style='arc', outline="red", width=2, start=0, end=180, tags="arcs");
+			circle = self.CANVAS_C.create_circle_arc(x0, y0, r, style='arc', outline="red", width=2, start=0, end=180, tags="arcs");
+			self.CANVAS_C.tag_lower(circle);
 			r += 10;
 		code = 1
 		return code;
@@ -206,12 +207,16 @@ class Window():
 		self.noDrone_l = Label(self.win, text="No drone available", relief=RAISED);
 
 		# Add "ennemi" button
-		self.intruder_b = Button(self.win, text='Add target', image=∏PhotoImage(file='cible.gif'), command=lambda: self.add_ennemi(KIND_ENNEMI, 0));
+		self.logo = PhotoImage(file="images/cible.gif");
+		self.intruder_b = Button(self.win, text='Add target', width=50, height=50, command=lambda: self.add_ennemi(KIND_ENNEMI, 0));
+		self.intruder_b.config(image=self.logo);
 		self.intruder_b.grid(row=5, column=2, columnspan=2);
 
 		# Settings
 		#self.settings_i = PhotoImage(file="settings.gif");
-		self.settings_b = Button(self.win, text="Settings", command=lambda:self.settings_window());#image=self.settings_i);
+		self.logo_settings = PhotoImage(file="images/settings.GIF");
+		self.settings_b = Button(self.win, text="Settings", command=lambda:self.settings_window(), bd=0);#image=self.settings_i);
+		self.settings_b.config(image=self.logo_settings);
 		self.settings_b.grid(row=20, column=2);
 
 		# exit button

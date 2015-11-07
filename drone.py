@@ -47,20 +47,23 @@ class Drone(Thread):
 			color            = "black";
 			position         = "nw"
 			state            = drone_ennemi_ready;
+			offset 			 = self.diameter;
 		else:
 			tags             = "drone_";
 			color            = "blue";
-			position         = "nw"
+			position         = "ne"
 			state            = drone_ready;
 			self.speed       = 2;
 			self.drone_list  = drone_list;
 			self.ennemi_list = ennemi_list;
-			self.name_t      = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);	
+			self.name_t      = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
+			offset 			 = -self.diameter;	
 			
 		alt                  = "Alt : "+ str(self.Z) +"m";
 		self.drone           = CANVAS_C.create_polygon(self.X, self.Y, self.X+self.diameter, self.Y+self.diameter, self.X-self.diameter, self.Y+self.diameter, tags=tags+str(self.id), fill=color);
-		self.alt_t           = CANVAS_C.create_text(self.X+self.diameter, self.Y+2, anchor=position, text=alt, tags="alt_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
+		self.alt_t           = CANVAS_C.create_text(self.X+offset, self.Y+2, anchor=position, text=alt, tags="alt_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
 		self.state           = state;
+
 
 	def go_straight(self, dY):
 		return self.Y - dY;
