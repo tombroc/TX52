@@ -9,15 +9,20 @@ import time
 import random
 
 REAL_SCOPE = 350;
+REAL_SCOPE_SCALE = REAL_SCOPE;
 VIRTUAL_SCOPE = 0;
 # Height equivalency (in meters)
 HEIGHT_SCALE = 400;
 HEIGHT_CANVAS = 0;
 WIDTH_CANVAS = 0;
 NUMBER_ALLY_DRONE = 2;
+NUMBER_DRONE = 6;
 CONTINUE = True;
 
 class Window():
+
+	def get_repare_b(self):
+		return self.repare_b;
 
 	def get_noDrone_l(self):
 		return self.noDrone_l;
@@ -49,14 +54,132 @@ class Window():
 			del kwargs["end"]
 			return self.create_arc(x-r, y-r, x+r, y+r, **kwargs)
 
-
 	Canvas.create_circle_arc = _create_circle_arc;
 
-	def draw_radar(self):
+	def create_ennemi_button(self):
+		# Kind of a drone
+		KIND_ENNEMI = "ennemi";
+		# Add "ennemi" button
+		self.logo = PhotoImage(file="images/cible.gif");
+		self.intruder_b = Button(self.win, text='Add target', width=50, height=50, command=lambda: self.add_ennemi(KIND_ENNEMI, 0));
+		self.intruder_b.config(image=self.logo);
+		self.intruder_b.grid(row=5, column=2, columnspan=2);
+
+	def create_drone_label(self):
+
+		global NUMBER_DRONE;
+		num = 0;
+		# Drones label
+		for num in range(NUMBER_DRONE):
+
+			name = "DRONE "+str(num+1);
+			name = Label(self.win, text=name+"\nReady", relief=RAISED, width=10, height=5, bg="green");
+			self.label_list.append(name);
+			if num < 2:
+				name.grid(row=6, column=num+2, padx=10, pady=10);
+
+			elif num < 4:
+				name.grid(row=7, column=num+2-2, padx=10, pady=10);
+			else:
+				name.grid(row=8, column=num+2-4, padx=10, pady=10);
+
+		self.noDrone_l = Label(self.win, text="No drone available", relief=RAISED);
+
+	def create_main_window(self):
+
+		global HEIGHT_CANVAS;
+		global WIDTH_CANVAS;
+		# Main window
+		self.win = Tk();
+		self.win.title("Drone interception");
+		HEIGHT = 1000;
+		WIDTH = 1300;
+		
+		HEIGHT_CANVAS = 800;
+		WIDTH_CANVAS = 990;
+		
+		self.win.geometry("%dx%d%+d%+d" % (WIDTH,HEIGHT_CANVAS + 100,(self.win.winfo_screenwidth()-WIDTH)/2,(self.win.winfo_screenheight()-HEIGHT)/2));
+
+	def create_simulation_zone(self):
+		# Simulation zone
+
+		self.CANVAS_C = Canvas(self.win, width = WIDTH_CANVAS, height = HEIGHT_CANVAS, bg ='#30A030', bd=5, relief=SUNKEN);
+		self.CANVAS_C.grid(row=3, column=1, rowspan=20, padx=10, pady=10);
+		
+	def create_title_label(self):
+		# Label title
+		self.main_l = Label(self.win, text='Drones interception simulation', font=("Purisa",12,"bold","italic"));
+		self.main_l.grid(row=1, column=1, padx=10, pady=10);
+
+	def create_repare_button(self):
+		
+		self.repare_b = Button(self.win, text='Repare drones')#, command=lambda:self.repare_drone());
+
+	def repare_drone(self):	
+
+		drone_ready = 2;
+		drone_back  = 4;
+		for i in range(NUMBER_DRONE):
+			if self.drone_list[i].state == drone_back:
+				self.drone_list[i].state = drone_ready;
+		self.noDrone_l.grid_forget();
+		self.repare_b.grid_forget();
+
+	def create_settings_button(self):
+		# Settings
+		#self.settings_i = PhotoImage(file="settings.gif");
+		self.logo_settings = PhotoImage(file="images/settings.GIF");
+		self.settings_b = Button(self.win, text="Settings", command=lambda:self.settings_window());#image=self.settings_i);
+		self.settings_b.config(image=self.logo_settings);
+		self.settings_b.grid(row=20, column=2);
+
+	def create_quit_button(self):
+		# exit button
+		self.quit_b = Button(self.win,text='Exit', command=lambda:self.exit(self.win, False));
+		self.quit_b.grid(row=20, column=3, padx=10, pady=10);
+
+	def settings_window(self):
+
+		global NUMBER_DRONE;
+		global REAL_SCOPE_SCALE;
+		retour = 0;
+
+		#Settings window
+		self.settings = Tk();
+		self.settings.title("Settings");
+		self.settings.geometry("%dx%d%+d%+d" % (350,200,(self.win.winfo_screenwidth()-1400)/2,(self.win.winfo_screenheight()-1000)/2));
+		self.nbDroneByAttack_s = Scale(self.settings, from_=1, to=NUMBER_DRONE, orient=HORIZONTAL);
+		self.nbDroneByAttack_s.set(NUMBER_ALLY_DRONE)
+		self.nbDroneByAttack_s.grid(row=1, column=1, columnspan=2);
+		# Scope scale
+		self.scale_l = Label(self.settings, text='Scope value :');
+		self.scale_l.grid(row=2, column=1, columnspan=2);
+		self.scale_s = Scale(self.settings, from_=1, to=REAL_SCOPE*2, orient=HORIZONTAL, length=300, command=lambda code=retour:self.draw_radar_zone());
+		self.scale_s.set(REAL_SCOPE_SCALE);
+		self.scale_s.grid(row=3, column=1, columnspan=2, padx=25);
+
+		self.updateSettings_b = Button(self.settings, text="Validate", command=lambda:self.updateSettings(self.settings));
+		self.updateSettings_b.grid(row=4, column=1, pady=25, columnspan=2);
+		
+		self.settings.mainloop();
+
+	def updateSettings(self, window):
+
+		global NUMBER_ALLY_DRONE;
+
+		print("Updating settings...");
+		NUMBER_ALLY_DRONE = self.nbDroneByAttack_s.get();
+		self.draw_radar_zone();
+		print ("Number ally drone = "+str(NUMBER_ALLY_DRONE));
+		print ("Scope = "+str(NUMBER_ALLY_DRONE));
+		self.exit(window, True);
+
+	def draw_radar_zone(self):
 
 		global VIRTUAL_SCOPE;
 		global HEIGHT_SCALE;
 		global HEIGHT_CANVAS;
+		global REAL_SCOPE_SCALE;
 
 
 		# Detection zone 
@@ -65,7 +188,7 @@ class Window():
 		self.CANVAS_C.delete("alt_0");
 		self.CANVAS_C.delete("arcs");
 
-		VIRTUAL_SCOPE = self.scale_s.get() * HEIGHT_CANVAS / HEIGHT_SCALE;
+		VIRTUAL_SCOPE = REAL_SCOPE_SCALE * HEIGHT_CANVAS / HEIGHT_SCALE;
 
 		x0 = WIDTH_CANVAS / 2;
 		y0 = HEIGHT_CANVAS;
@@ -75,7 +198,13 @@ class Window():
 			circle = self.CANVAS_C.create_circle_arc(x0, y0, r, style='arc', outline="red", width=2, start=0, end=180, tags="arcs");
 			self.CANVAS_C.tag_lower(circle);
 			r += 10;
-		code = 1
+
+		try:
+			REAL_SCOPE_SCALE = self.scale_s.get();
+		except:
+			pass;
+
+		code = 1;
 		return code;
 
 	def add_ennemi(self, KIND, IDENTIFIER):
@@ -83,15 +212,13 @@ class Window():
 		global HEIGHT_CANVAS;
 		global WIDTH_CANVAS;
 		global HEIGHT_SCALE;
-		print("100")
 
 		self.intruder_b.config(state=DISABLED);
-		self.scale_s.config(state=DISABLED);
+		#self.scale_s.config(state=DISABLED);
 		
 		X = random.uniform(0, WIDTH_CANVAS);
 		Y = 0;
 		Z = 200;
-		self.warning_l.grid_forget();
 
 		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, [], []);
 		
@@ -99,37 +226,19 @@ class Window():
 
 		thread_drone.start();
 
-	
 	def exit(self, window, value):
+
 		global CONTINUE;
 		CONTINUE = value;
 		time.sleep(0.2);
+		#if window == self.win and self.settings:
+		#	self.settings.destroy();
 		window.destroy();
 
-	def updateSettings(self, window):
-		global NUMBER_ALLY_DRONE;
-		
-		print("Updating settings...");
-		NUMBER_ALLY_DRONE = self.nbDroneByAttack_s.get();
-		print ("Number ally drone = "+str(NUMBER_ALLY_DRONE));
-		self.exit(window, True);
-
-	def settings_window(self):
-		#Settings window
-		self.settings = Tk();
-		self.settings.title("Settings");
-		self.settings.geometry("%dx%d%+d%+d" % (200,200,0,0));
-		self.nbDroneByAttack_s = Scale(self.settings, from_=1, to=6, orient=HORIZONTAL);
-		self.nbDroneByAttack_s.set(NUMBER_ALLY_DRONE)
-		self.nbDroneByAttack_s.grid(row=1, column=1);
-		self.updateSettings_b = Button(self.settings, text="Validate", command=lambda:self.updateSettings(self.settings));
-		self.updateSettings_b.grid(row=2, column=1);
-		self.settings.mainloop();
-
-	def __init__(self):
-
+	def __init__(self, drone_list):
 
 		global REAL_SCOPE;
+		global REAL_SCOPE_SCALE;
 		
 		# Height equivalency (in meters)
 		global HEIGHT_SCALE;
@@ -142,87 +251,30 @@ class Window():
 		global CONTINUE;
 
 		self.ennemi_list = [];
-
-		self.label_list = [];
-		# Kind of a drone
-		KIND_ENNEMI = "ennemi";
-		KIND_ALLY = "ally";
-
-		retour = 0;
-
-		num = 0;
-
-		
+		self.drone_list  = drone_list;
+		self.label_list  = [];
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
 
+		self.create_main_window();
 
-		# Main window
-		self.win = Tk();
-		self.win.title("Drone interception");
+		self.create_simulation_zone();
 		
-		# Simulation zone
+		self.create_title_label();
 
-		HEIGHT = 1000;
-		WIDTH = 1400
+		self.create_drone_label();
+
+		self.create_repare_button();
 		
-		self.win.geometry("%dx%d%+d%+d" % (WIDTH,HEIGHT,(self.win.winfo_screenwidth()-WIDTH)/2,(self.win.winfo_screenheight()-HEIGHT)/2));
+		self.create_ennemi_button();
+
+		self.create_settings_button();
 		
-		HEIGHT_CANVAS = 800;
-		WIDTH_CANVAS = 990;
-
-		self.warning_l = Label(self.win, text='/!\\Intruder in the zone/!\\', font=("Purisa",12,"bold","italic"), bg='red');
+		self.draw_radar_zone();
 		
-		# Label title
-		self.main_l = Label(self.win, text='Drones interception simulation', font=("Purisa",12,"bold","italic"));
-		self.main_l.grid(row=1, column=1, padx=10, pady=10);
-
-		self.CANVAS_C = Canvas(self.win, width = WIDTH_CANVAS, height = HEIGHT_CANVAS, bg ='#30A030', bd=5, relief=SUNKEN);
-		self.CANVAS_C.grid(row=3, column=1, rowspan=20, padx=10, pady=10);
-		
-
-		# Scope scale
-		self.scale_l = Label(self.win, text='Scope value :');
-		self.scale_l.grid(row=3, column=2, columnspan=2);
-		self.scale_s = Scale(self.win, from_=1, to=REAL_SCOPE*2, orient=HORIZONTAL, length=300, command=lambda code=retour:self.draw_radar());
-		self.scale_s.set(REAL_SCOPE);
-		self.scale_s.grid(row=4, column=2, columnspan=2);
-		
-		# Drones label
-		while num < 6:
-			num += 1;
-			name = "DRONE "+str(num);
-			name = Label(self.win, text=name+"\nReady", relief=RAISED, width=10, height=5, bg="green");
-			self.label_list.append(name);
-			if num < 3:
-				name.grid(row=6, column=num+1);
-
-			elif num < 5:
-				name.grid(row=7, column=num+1-2);
-			else:
-				name.grid(row=8, column=num+1-4);
-
-		self.noDrone_l = Label(self.win, text="No drone available", relief=RAISED);
-
-		# Add "ennemi" button
-		self.logo = PhotoImage(file="images/cible.gif");
-		self.intruder_b = Button(self.win, text='Add target', width=50, height=50, command=lambda: self.add_ennemi(KIND_ENNEMI, 0));
-		self.intruder_b.config(image=self.logo);
-		self.intruder_b.grid(row=5, column=2, columnspan=2);
-
-		# Settings
-		#self.settings_i = PhotoImage(file="settings.gif");
-		self.logo_settings = PhotoImage(file="images/settings.GIF");
-		self.settings_b = Button(self.win, text="Settings", command=lambda:self.settings_window(), bd=0);#image=self.settings_i);
-		self.settings_b.config(image=self.logo_settings);
-		self.settings_b.grid(row=20, column=2);
-
-		# exit button
-		self.quit_b = Button(self.win,text='Exit', command=lambda:self.exit(self.win, False));
-
-		self.quit_b.grid(row=20, column=3, padx=10, pady=10);
+		self.create_quit_button();
 		
 
 		#---------------------------------------------------------------------------------------------------------------#

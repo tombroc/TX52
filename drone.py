@@ -14,7 +14,7 @@ ennemi_event = Event();
 drone_event.set();
 ennemi_event.set();
 
-t                    = 0.001;
+time_sleep           = 0.001;
 loop_number          = 1;
 
 drone_out            = 0;
@@ -40,7 +40,9 @@ class Drone(Thread):
 		self.Y               = Y;
 		self.Z               = Z;
 		self.label           = label;
-			
+		self.event           = Event();
+
+		self.event.set();	
 			
 		if kind == "ennemi":
 			tags             = "ennemi_";
@@ -48,16 +50,21 @@ class Drone(Thread):
 			position         = "nw"
 			state            = drone_ennemi_ready;
 			offset 			 = self.diameter;
+
 		else:
 			tags             = "drone_";
 			color            = "blue";
 			position         = "ne"
 			state            = drone_ready;
+			offset 			 = -self.diameter;
+			
 			self.speed       = 2;
 			self.drone_list  = drone_list;
 			self.ennemi_list = ennemi_list;
 			self.name_t      = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
-			offset 			 = -self.diameter;	
+			self.X_SPOT        = X;
+			self.Y_SPOT        = Y;
+			self.Z_SPOT        = Z;
 			
 		alt                  = "Alt : "+ str(self.Z) +"m";
 		self.drone           = CANVAS_C.create_polygon(self.X, self.Y, self.X+self.diameter, self.Y+self.diameter, self.X-self.diameter, self.Y+self.diameter, tags=tags+str(self.id), fill=color);
@@ -104,36 +111,114 @@ class Drone(Thread):
 		else:
 			return False;
 
+	def out_height(self, X, a):
+		if a-self.height/2 <= X <= a+self.height:
+			return False;
+		else:
+			return True;
 
-	def check_trajectory(self, identifier, dX, dY, dZ):
+	def between(self, X, Y, a):
+		if X > Y-a and X < Y+a:
+			return True;
+		else:
+			return False;
+
+	def compute_trajectory(self, a, b, c):
+
+		# Unitary vector
+
+		a = a / sqrt(a**2 + b**2 + c**2);
+		b = b / sqrt(a**2 + b**2 + c**2);
+		c = c / sqrt(a**2 + b**2 + c**2);
+
+		# Parameter t
+
+		t = (self.speed )#* sqrt(1/(a**2 + b**2 + c**2)));
+
+		# New coordinnates for the drone (using parametric system)
+
+		newX = self.X + t * a;
+		newY = self.Y + t * b;
+		newZ = self.Z + t * c;
+		
+		if self.check_trajectory(newX, newY, newZ):
+			self.canvas.move(self.drone, t * a, t * b);
+			self.canvas.move(self.alt_t, t * a, t * b);
+			self.canvas.move(self.name_t, t * a, t * b);
+
+		self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(newZ))+"m");
+		self.canvas.update();
+
+		# Update of the drone coordinates
+
+		self.X = newX;
+		self.Y = newY;
+		self.Z = newZ;
+
+	def check_trajectory(self, X, Y, Z):
+		dX = 1;
 		for ally in self.drone_list:
-			if ally.id != identifier and ally.state == drone_flying:
-				dist = sqrt( ((self.X + dX) - ally.X)**2 + ((self.Y + dY) - ally.Y)**2 );
-				print ("dist = " +str(dist)+ " diameter = "+str(self.diameter))
+			if ally.id != self.id and ally.state == drone_flying:
+				dist = sqrt( (X - ally.X)**2 + (Y - ally.Y)**2 );
+				#print ("dist = " +str(dist)+ " diameter = "+str(self.diameter))
 				if  dist <= self.diameter:# and (self.Z + dZ) == ally.Z :
+					print ("---- Trajectory correction : "+str(self.kind)+" - "+str(self.id) +" ----\n");
 					# The drone must change his trajectory
-					if self.X < ally.X:
-						self.X = self.go_left(dX);
+					self.canvas.move(self.drone,  (X-self.X)*2, (Y-self.Y)/2);
+					self.canvas.move(self.alt_t,  (X-self.X)*2, (Y-self.Y)/2);
+					self.canvas.move(self.name_t, (X-self.X)*2, (Y-self.Y)/2);
+					self.Y = self.go_straight((Y-self.Y)/2);
+					if X < ally.X:
+						self.X = self.go_left((X-self.X)*2);
 					else: 
-						self.X = self.go_right(dX);
-
-					if self.Y < ally.Y:
-						self.Y = self.go_straight(dY);
-					#else: 
-					#	self.Y = self.go_right(dY);
-
-
-					return True;
-				else:
+						self.X = self.go_right((X-self.X)*2);
 					return False;
+				else:
+					return True;
+			else:
+				# No other drone flying
+				return True; 
+
+
+	def thread_traitment(self):
+	
+		if self.kind == 'ally':
+			i = self.id+1;
+			test = True;
+			while(i < g.NUMBER_DRONE and test):
+				if self.drone_list[i].state == drone_flying:
+					self.drone_list[i].event.clear();
+					self.drone_list[i].event.set();
+					test = False;
+					kind = "ally";
+				i = i + 1;
+			i = 0;
+			while(i < len(self.ennemi_list) and test):
+				if self.ennemi_list[i].state == drone_ennemi_ready:
+					self.ennemi_list[i].event.clear();
+					self.ennemi_list[i].event.set();
+					test = False;
+					kind = "ennemi";
+				i = i + 1;		
+			time.sleep(time_sleep);
+			
+			if not test:
+				# We have to stop the current thread as a las resort to be sure it can stop all the other thread first
+				for ennemi in self.ennemi_list:
+					if (kind != ennemi.kind or i != ally.id) and (ennemi.id != self.id or self.kind != ennemi.kind):
+						ennemi.event.wait();
+				for ally in self.drone_list:
+					if (kind != ally.kind or i != ally.id) and (ally.id != self.id or self.kind != ally.kind):
+						ally.event.wait();
+				self.event.wait();
 
 	def ennemi_movement(self):
+
 		dY = 1;
 		newX = 0.0;
 		newY = 0.0;
 		newZ = 0.0;
 		
-		print ("---- MOVE : Ennemi ----");
 		while sqrt(
 						(self.X - (g.WIDTH_CANVAS)/2) * (self.X - (g.WIDTH_CANVAS)/2) 
 					  + (self.Y - (g.HEIGHT_CANVAS)) * (self.Y - (g.HEIGHT_CANVAS))
@@ -166,10 +251,7 @@ class Drone(Thread):
 		while self.state != drone_out and self.Y < g.HEIGHT_CANVAS+10 and g.CONTINUE:
 			#if i == loop_number:
 				#i = 0;
-			drone_event.clear();
-			drone_event.set();
-			time.sleep(t);
-			ennemi_event.wait();
+			self.thread_traitment();
 
 			if self.X > g.WIDTH_CANVAS - 50   and self.X < g.WIDTH_CANVAS and dX > 0:
 				dX = random.randint(-1,1);
@@ -198,58 +280,27 @@ class Drone(Thread):
 			self.canvas.update();
 			i = 1;
 
-		print ("---- END MOVE : Ennemi----");
-
 	def drone_movement(self):
-		print ("---- MOVE : Drone ----")
 		
+
 		#i = 0;
 		while (self.ennemi_list and (self.out_diameter(int(self.X), int(self.ennemi_list[0].X)) 
 			or self.out_diameter(int(self.Y), int(self.ennemi_list[0].Y)) 
 			or int(self.Z) != int(self.ennemi_list[0].Z))
 			and sqrt((self.ennemi_list[0].X - (g.WIDTH_CANVAS)/2) * (self.ennemi_list[0].X - (g.WIDTH_CANVAS)/2) + (self.ennemi_list[0].Y - (g.HEIGHT_CANVAS)) * (self.ennemi_list[0].Y - (g.HEIGHT_CANVAS))) <= g.VIRTUAL_SCOPE+15) and g.CONTINUE:
-			#i += 1;
-			#if i == loop_number:
-				#i = 0;
-			ennemi_event.clear();
-			ennemi_event.set();
-			time.sleep(t);
-			drone_event.wait();
+			
+			self.thread_traitment();
 			
 			# Best trajectory to intercept the intruder
 
 			# Direction vector between drone and ennemi
+			if self.ennemi_list:
+				a = self.ennemi_list[0].X - self.X;
+				b = self.ennemi_list[0].Y - self.Y;
+				c = self.ennemi_list[0].Z - self.Z;
 
-			a = self.ennemi_list[0].X - Self.X;
-			b = self.ennemi_list[0].Y - Self.Y;
-			c = self.ennemi_list[0].Z - Self.Z;
+				self.compute_trajectory(a, b, c);
 
-			# Parameter t
-
-			t = self.speed * sqrt(1/(a**2 + b**2 + c**2));
-
-			# New coordinnates for the drone (using parametric system)
-
-			newX = self.X + t * a;
-			newY = self.Y + t * b;
-			newZ = self.Z + t * c;
-			
-			#print("self.X = "+str(self.X)+" dX = "+str(dX))
-			self.canvas.move(self.drone, newX-self.X, newY-self.Y);
-			self.canvas.move(self.alt_t, newX-self.X, newY-self.Y);
-			self.canvas.move(self.name_t, newX-self.X, newY-self.Y);
-			self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(newZ))+"m");
-			self.canvas.update();
-
-			# Update of the drone coordinates
-
-			self.X = newX;
-			self.Y = newY;
-			self.Z = newZ;
-
-			# print ("\nX : "+str(int(self.X))+" "+str(int(self.ennemi_list[0].X)));
-			# print ("Y : "+str(int(self.Y))+" "+str(int(self.ennemi_list[0].Y)));
-			# print ("Z : "+str(int(self.Z))+" "+str(int(self.ennemi_list[0].Z))+"\n");
 			
 		# The drone destroyed the ennemi and is destroy too	
 		if self.ennemi_list and self.in_diameter(int(self.X), int(self.ennemi_list[0].X)) and self.in_diameter(int(self.Y), int(self.ennemi_list[0].Y)) and int(self.Z) == int(self.ennemi_list[0].Z) and g.CONTINUE:
@@ -260,74 +311,57 @@ class Drone(Thread):
 		elif self.ennemi_list and g.CONTINUE:
 			self.ennemi_list[0].state = drone_ennemi_escaped;
 
-		# Back to GQ if the ennemi escaped or if another drone intersepted it
+
+
+		#------ Back to GQ if the ennemi escaped or if another drone intersepted it ------#
+
 		if ((self.ennemi_list and self.state == drone_flying and (self.ennemi_list[0].state == drone_ennemi_escaped)) or ((not self.ennemi_list) and self.state == drone_flying)) and g.CONTINUE:
 			#print ("In if")
 			i = 0;
 			self.label.config(text="DRONE "+str(self.id+1)+"\nComing back");
-			while (self.out_diameter(self.X, g.WIDTH_CANVAS/2) or self.Y < g.HEIGHT_CANVAS or int(self.Z) != 1) and g.CONTINUE:
+			
+			while (self.out_diameter(int(self.X), int(self.X_SPOT)) 
+				or self.out_diameter(int(self.Y), int(self.Y_SPOT)) 
+				or self.out_height(int(self.Z), int(self.Z_SPOT))) and g.CONTINUE:
 				
-				#print ("In while")
-				i += 1;
-				if i == loop_number and self.ennemi_list:
-					i = 0;
-					ennemi_event.clear();
-					ennemi_event.set();
-					time.sleep(t);
-					drone_event.wait();
-				try:
-					dX = abs(self.X-g.WIDTH_CANVAS/2)/abs(self.Y-g.HEIGHT_CANVAS);
-				except:
-					dX = 1;
-				dY = 1;
-				if int(self.X) > g.WIDTH_CANVAS/2:
-					self.X = self.go_left(dX);
-					dX = dX * -1;
-				elif int(self.X) < g.WIDTH_CANVAS/2:
-					self.X = self.go_right(dX);
-				else:
-					dX = 0;
+				# i += 1;
+				# if i == loop_number and self.ennemi_list:
+				# 	i = 0;
+				self.thread_traitment();
+				
+				a = self.X_SPOT - self.X;
+				b = self.Y_SPOT - self.Y;
+				c = 3 - self.Z;
 
-				if int(self.Y) > g.HEIGHT_CANVAS:
-					self.Y = self.go_straight(dY);
-					dY = dY * -1;
-				elif int(self.Y) < g.HEIGHT_CANVAS:
-					self.Y = self.go_back(dY);
-				else:
-					dY = 0;
+				#print ("X = "+str(self.X)+" Y = "+str(self.Y)+" Z = "+str(self.Z));
+				#print ("a = "+str(a)+" b = "+str(b)+" c = "+str(c));
+				self.compute_trajectory(a, b, c);
 
-				if self.Z >= 2:
-					dZ = 1
-					self.Z = self.go_down(dZ);
-
-				#print ("\nX : "+str(int(self.X)));
-				#print ("Y : "+str(int(self.Y)));
-				#print ("Z : "+str(int(self.Z))+"\n");
-				#print (self.X - g.WIDTH_CANVAS/2)
-				#print (self.Y)
-				#print (g.HEIGHT_CANVAS)
-				#print (self.Y - g.HEIGHT_CANVAS)
-				self.canvas.move(self.drone, dX, dY);
-				self.canvas.move(self.alt_t, dX, dY);
-				self.canvas.move(self.name_t, dX, dY);
-				self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
-				self.canvas.update();
-
-			print ("Back home");
-			self.state = drone_back;	# Drone back of a mission ready for inspection
-			self.label.config(bg="blue", text="DRONE "+str(self.id+1)+"\nBack");
-			# if the ennemi escaped we get him out of the list
-			if self.ennemi_list:
-				self.ennemi_list[0].state = drone_out;
-
-		print("---- END ALLY MOVE ----");
+			if g.CONTINUE:
+				self.state = drone_back;	# Drone back of a mission ready for inspection
+				self.label.config(bg="blue", text="DRONE "+str(self.id+1)+"\nBack");
+				# if the ennemi escaped we get him out of the list
+				if self.ennemi_list:
+					self.ennemi_list[0].state = drone_out;
+		
 
 	def run(self):
+
+		if g.CONTINUE:
+			print ("---- START MOVE : "+str(self.kind)+" - "+str(self.id)+ " ----\n");
 
 		if self.kind == "ennemi":
 			self.ennemi_movement();
 		elif self.kind == "ally":
 			self.drone_movement();
+
+		if g.CONTINUE:
+			if self.state == drone_out: 
+				print ("---- END MOVE : "+str(self.kind)+" - "+str(self.id)+ " -> DESTROYED ----\n");
+			elif self.state == drone_back:
+				print ("---- END MOVE : "+str(self.kind)+" - "+str(self.id)+ " -> BACK ----\n");
+			else: 
+				print ("---- END MOVE : "+str(self.kind)+" - "+str(self.id)+ " -> ESCAPED ----\n")
 			
 
 
