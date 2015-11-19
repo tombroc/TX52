@@ -220,7 +220,7 @@ class Window():
 		Y = 0;
 		Z = 200;
 
-		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, [], []);
+		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, self.drone_list, []);
 		
 		self.ennemi_list.append(thread_drone);
 
