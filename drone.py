@@ -2,17 +2,13 @@
 # -*- coding: utf-8 -*-
 # -*-iso-8859-15 -*
 import os
+import sys
 import graphics as g
 from tkinter import *
 from threading import Thread, RLock, Event
 from math import sqrt
 import time
 import random
-
-drone_event = Event();
-ennemi_event = Event();
-drone_event.set();
-ennemi_event.set();
 
 time_sleep           = 0.01;
 loop_number          = 1;
@@ -28,52 +24,45 @@ class Drone(Thread):
 
 	def __init__(self, kind, identifier, CANVAS_C, X, Y, Z, ennemi_list, drone_list, label):
 		Thread.__init__(self);
-		drone_ready          = 2;	# Drone on his spot and operational
-		drone_ennemi_ready   = 7;	# Drone ennemi ready
+		drone_ready        = 2;	# Drone on his spot and operational
+		drone_ennemi_ready = 7;	# Drone ennemi ready
 		
-		self.canvas          = CANVAS_C;
-		self.id              = identifier;
-		self.kind            = kind;
-		self.diameter        = 20;
-		self.height          = 5;
-		self.X               = X;
-		self.Y               = Y;
-		self.Z               = Z;
-		self.label           = label;
-		self.event           = Event();
-
+		self.canvas        = CANVAS_C;
+		self.id            = identifier;
+		self.kind          = kind;
+		self.diameter      = 20;
+		self.height        = 5;
+		self.X             = X;
+		self.Y             = Y;
+		self.Z             = Z;
+		self.label         = label;
+		self.event         = Event();
+		
 		self.event.set();	
-			
-		if kind == "ennemi":
-			tags             = "ennemi_";
-			color            = "black";
-			position         = "nw"
-			state            = drone_ennemi_ready;
-			offset 			 = self.diameter;
+		tags               = "drone_";
+		color              = "blue";
+		position           = "ne"
+		state              = drone_ready;
+		offset             = -self.diameter;
+		self.speed         = 0;
+		self.speed_max     = 3;
+		self.name_t        = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
+		self.X_SPOT        = X;
+		self.Y_SPOT        = Y;
+		self.Z_SPOT        = Z;
+		
+		alt                = "Alt : "+ str(self.Z) +"m";
+		self.drone         = CANVAS_C.create_polygon(self.X, self.Y, self.X+self.diameter, self.Y+self.diameter, self.X-self.diameter, self.Y+self.diameter, tags=tags+str(self.id), fill=color);
+		self.alt_t         = CANVAS_C.create_text(self.X+offset, self.Y+2, anchor=position, text=alt, tags="alt_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
+		self.state         = state;
+		self.drone_list    = drone_list;
+		self.ennemi_list   = ennemi_list;
 
-		else:
-			tags             = "drone_";
-			color            = "blue";
-			position         = "ne"
-			state            = drone_ready;
-			offset 			 = -self.diameter;
-			self.speed       = 3;
-			self.name_t      = CANVAS_C.create_text(self.X, self.Y+self.diameter+20, anchor="s", text="Drone "+str(self.id+1), tags="drone_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
-			self.X_SPOT      = X;
-			self.Y_SPOT      = Y;
-			self.Z_SPOT      = Z;
-			
-		alt                  = "Alt : "+ str(self.Z) +"m";
-		self.drone           = CANVAS_C.create_polygon(self.X, self.Y, self.X+self.diameter, self.Y+self.diameter, self.X-self.diameter, self.Y+self.diameter, tags=tags+str(self.id), fill=color);
-		self.alt_t           = CANVAS_C.create_text(self.X+offset, self.Y+2, anchor=position, text=alt, tags="alt_"+ str(self.kind)+"_"+str(self.id+1), fill=color);
-		self.state           = state;
-		self.drone_list      = drone_list;
-		self.ennemi_list     = ennemi_list;
-
-
+	# Tell the drone to go straight
 	def go_straight(self, dY):
 		return self.Y - dY;
 
+	# 
 	def go_back(self, dY):
 		return self.Y + dY;
 
@@ -128,13 +117,12 @@ class Drone(Thread):
 		else:
 			return False;
 
-	def compute_trajectory(self, a, b, c):
+	def compute_trajectory(self, a, b, TARGET_KIND):
 
 		# Unitary vector
 
-		a = a / sqrt(a**2 + b**2 + c**2);
-		b = b / sqrt(a**2 + b**2 + c**2);
-		c = c / sqrt(a**2 + b**2 + c**2);
+		a = a / sqrt(a**2 + b**2);
+		b = b / sqrt(a**2 + b**2);
 
 		# Parameter t
 
@@ -142,11 +130,25 @@ class Drone(Thread):
 
 		# New coordinnates for the drone (using parametric system)
 
-		newX = self.X + t * a;
-		newY = self.Y + t * b;
-		newZ = self.Z + t * c;
-		
+		newX = self.go_right(t * a);
+		newY = self.go_back(t * b);
+		newZ = self.Z;
+
+		# Target is an ennemi
+		if TARGET_KIND == 0:
+			if self.ennemi_list and self.ennemi_list[0].Z > self.Z:
+				newZ = self.Z + 1;
+			elif self.ennemi_list and self.ennemi_list[0].Z < self.Z:
+				newZ = self.Z - 1;
+
+		# Target is QG
+		# Stop 10meters above the QG spot
+		elif self.Z > self.Z_SPOT + 10:
+			newZ = 0.9 * self.Z;
+			
+
 		if self.check_trajectory(newX, newY, newZ):
+
 			self.canvas.move(self.drone, t * a, t * b);
 			self.canvas.move(self.alt_t, t * a, t * b);
 			self.canvas.move(self.name_t, t * a, t * b);
@@ -166,17 +168,19 @@ class Drone(Thread):
 			if ally.id != self.id and ally.state == drone_flying:
 				dist = sqrt( (X - ally.X)**2 + (Y - ally.Y)**2);
 				#print ("dist = " +str(dist)+ " diameter = "+str(self.diameter))
-				if  dist <= self.diameter:# and (self.Z + dZ) == ally.Z :
-					print ("---- Trajectory correction : "+str(self.kind)+" - "+str(self.id) +" ----\n");
+				if  dist <= self.diameter + 2 and X < ally.X:
+					#print ("---- Trajectory correction : "+str(self.kind)+" - "+str(self.id) +" ----\n");
 					# The drone must change his trajectory
 					self.canvas.move(self.drone,  (X-self.X)*2, (Y-self.Y)/2);
 					self.canvas.move(self.alt_t,  (X-self.X)*2, (Y-self.Y)/2);
 					self.canvas.move(self.name_t, (X-self.X)*2, (Y-self.Y)/2);
+					self.canvas.update();
 					self.Y = self.go_straight((Y-self.Y)/2);
 					if X < ally.X:
 						self.X = self.go_left((X-self.X)*2);
 					else: 
 						self.X = self.go_right((X-self.X)*2);
+					self.slowing_down_phase(1);
 					return False;
 				else:
 					return True;
@@ -184,12 +188,59 @@ class Drone(Thread):
 				# No other drone flying
 				return True; 
 
-	def slowing_down_phase(self):
-
-		if self.speed >= 1:
-			COEFF_SLOW_DOWN = 0.5;
+	def slowing_down_phase(self, speed):
+		print ("slowing down drone "+str(self.kind)+" "+str(self.id))
+		COEFF_SLOW_DOWN = 0.05 * self.speed_max;
+		if self.speed - COEFF_SLOW_DOWN >= speed:
 			self.speed = self.speed - COEFF_SLOW_DOWN;
-		print ("Slowing down");
+
+	def acceleration_phase(self):
+		print ("acceleration drone "+str(self.kind)+" "+str(self.id))
+		COEFF_ACCELERATION = 0.05 * self.speed_max;
+		if self.speed + COEFF_ACCELERATION <= self.speed_max:
+			self.speed = self.speed + COEFF_ACCELERATION;
+
+	def takeoff_phase(self):
+		if self.ennemi_list[0].Z > 8:
+			while self.ennemi_list and self.Z < 10 and g.CONTINUE:
+				self.thread_traitment();
+				if self.Z > self.ennemi_list[0].Z:
+					self.Z = self.Z - 1;
+				elif self.Z < self.ennemi_list[0].Z:
+					self.Z = self.Z + 1;
+				self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
+				self.canvas.update();
+		else:
+			while self.ennemi_list and not self.between(self.Z, self.ennemi_list[0].Z, 2) and g.CONTINUE:
+				self.thread_traitment();
+				if self.Z > self.ennemi_list[0].Z:
+					self.Z = self.Z - 1;
+				elif self.Z < self.ennemi_list[0].Z:
+					self.Z = self.Z + 1;
+				self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
+				self.canvas.update();
+
+	def landing_phase(self):
+		# Go down until the drone touch the ground
+			while self.Z > self.Z_SPOT and g.CONTINUE:
+				self.thread_traitment();
+				self.Z -= 0.1;
+				self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
+				self.canvas.update();
+				time.sleep(time_sleep);
+
+	def Uturn_phase(self, phase):
+		print ("slowing down drone "+str(self.kind)+" "+str(self.id))
+		if phase == 1:
+			while int(self.speed) > 0:
+				print (self.speed)
+				self.slowing_down_phase(0);
+			self.speed = 0;
+		elif phase == 2:
+			while round(self.speed, 1) < self.speed_max:
+				print (round(self.speed, 1))
+				self.acceleration_phase();
+
 
 	def thread_traitment(self):
 	
@@ -255,99 +306,31 @@ class Drone(Thread):
 						ally.event.wait();
 				self.event.wait();
 
-	def ennemi_movement(self):
-
-		dY = 1;
-		newX = 0.0;
-		newY = 0.0;
-		newZ = 0.0;
-		
-		while sqrt(
-						(self.X - (g.WIDTH_CANVAS)/2) * (self.X - (g.WIDTH_CANVAS)/2) 
-					  + (self.Y - (g.HEIGHT_CANVAS)) * (self.Y - (g.HEIGHT_CANVAS))
-					) > g.VIRTUAL_SCOPE and g.CONTINUE:
-			#print ("Thread id : "+ str(self.id)+ " Kind : "+str(self.kind));
-			self.thread_traitment();
-
-			if self.X <= g.WIDTH_CANVAS/2:
-				a = -1;
-				b = 2;
-				dX = random.uniform(a, b);
-			elif self.X > g.WIDTH_CANVAS/2:
-				a = -2;
-				b = 1;
-				dX = random.uniform(a, b);
-
-			if self.Z < 3:
-				dZ = 2;
-			else:
-				dZ = random.randint(-1,1);
-
-			self.X = self.X + dX;
-			self.Y = self.Y + dY;
-			self.Z = self.Z + dZ;
-
-			self.canvas.move(self.drone, dX, dY);
-			self.canvas.move(self.alt_t, dX, dY);
-			self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
-			self.canvas.update();
-		i = 0;
-
-		while self.state != drone_out and self.Y < g.HEIGHT_CANVAS+10 and g.CONTINUE:
-			#if i == loop_number:
-				#i = 0;
-			#print ("Thread id : "+ str(self.id)+ " Kind : "+str(self.kind));
-			self.thread_traitment();
-
-			if self.X > g.WIDTH_CANVAS - 50   and self.X < g.WIDTH_CANVAS and dX > 0:
-				dX = random.randint(-1,1);
-			elif self.X > g.WIDTH_CANVAS - 50 and self.X < g.WIDTH_CANVAS:
-				dX = -1;
-			elif self.X < 50 and self.X > 0   and dX < 0:
-				dX = random.randint(-1,1);
-			elif self.X > g.WIDTH_CANVAS - 50 and self.X < g.WIDTH_CANVAS:
-				dX = 1;
-			elif i == 0:
-				 dX = random.randint(-2,2);
-
-			if (self.Y >= (g.HEIGHT_CANVAS-g.VIRTUAL_SCOPE) and dY > 0) or self.Y < 0:
-				dY = 1;
-			else:
-				dY = -1;
-			dZ = 0;
-
-			self.X += dX;
-			self.Y += dY;
-			self.Z += dZ;
-
-			self.canvas.move(self.drone, dX, dY);
-			self.canvas.move(self.alt_t, dX, dY);
-			self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
-			self.canvas.update();
-			i = 1;
-
 	def drone_movement(self):
 		
 
 		#i = 0;
+		TARGET_KIND = 0;
+		# Takeoff phase
+		self.takeoff_phase();
+		#time.sleep(5);
 		while (self.ennemi_list and (self.out_diameter(int(self.X), int(self.ennemi_list[0].X)) 
 			or self.out_diameter(int(self.Y), int(self.ennemi_list[0].Y)) 
 			or self.out_height(self.Z, self.ennemi_list[0].Z))
 			and sqrt((self.ennemi_list[0].X - (g.WIDTH_CANVAS)/2) * (self.ennemi_list[0].X - (g.WIDTH_CANVAS)/2) + (self.ennemi_list[0].Y - (g.HEIGHT_CANVAS)) * (self.ennemi_list[0].Y - (g.HEIGHT_CANVAS))) <= g.VIRTUAL_SCOPE+15) and g.CONTINUE:
 			
-			print ("Thread id : "+ str(self.id)+ " Kind : "+str(self.kind));
+
+			#print ("Thread id : "+ str(self.id)+ " Kind : "+str(self.kind));
 			self.thread_traitment();
-			
+			self.acceleration_phase();
 			# Best trajectory to intercept the intruder
 
 			# Direction vector between drone and ennemi
 			if self.ennemi_list:
 				a = self.ennemi_list[0].X - self.X;
 				b = self.ennemi_list[0].Y - self.Y;
-				c = self.ennemi_list[0].Z - self.Z;
 
-
-				self.compute_trajectory(a, b, c);
+				self.compute_trajectory(a, b, TARGET_KIND);
 
 		
 		# The drone destroyed the ennemi and is destroy too	
@@ -363,42 +346,40 @@ class Drone(Thread):
 
 
 		#------ Back to GQ if the ennemi escaped or if another drone intersepted it ------#
-
+		TARGET_KIND = 1;
 		if ((self.ennemi_list and self.state == drone_flying and (self.ennemi_list[0].state == drone_ennemi_escaped)) or ((not self.ennemi_list) and self.state == drone_flying)) and g.CONTINUE:
+			self.Uturn_phase(1);
 			#print ("In if")
 			i = 0;
 			self.label.config(text="DRONE "+str(self.id+1)+"\nComing back");
-			
+			count = 0;
+			slow_counter = 0;
+			self.Uturn_phase(2);
 			while (self.out_diameter(self.X, self.X_SPOT) 
-				or self.out_diameter(self.Y, self.Y_SPOT) 
-				or self.out_height(self.Z, self.Z_SPOT)) and g.CONTINUE:
+				or self.out_diameter(self.Y, self.Y_SPOT)) and g.CONTINUE:
 				
 				# i += 1;
 				# if i == loop_number and self.ennemi_list:
 				# 	i = 0;
 				self.thread_traitment();
-				
-				if sqrt((self.X-self.X_SPOT)**2 + (self.Y-self.Y_SPOT)**2) < 100:
-					self.slowing_down_phase();
+				if (self.abs(self.X-self.X_SPOT) < 100 or self.abs(self.Y-self.Y_SPOT) < 100):
+
+					self.slowing_down_phase(1);
+					if slow_counter == 0:
+						print("Slowing down... drone "+str(self.kind)+" "+str(self.id));
+						slow_counter = 1;
+				else:
+					slow_counter = 0;
 
 				a = self.X_SPOT - self.X;
 				b = self.Y_SPOT - self.Y;
-				c = 2 - self.Z;
 
-				print ("X = "+str(self.X)+" Y = "+str(self.Y)+" Z = "+str(self.Z));
 				#print ("a = "+str(a)+" b = "+str(b)+" c = "+str(c));
-				self.compute_trajectory(a, b, c);
+				self.compute_trajectory(a, b, TARGET_KIND);
 
-			# Go down until the drone touch the ground
-			while self.Z > self.Z_SPOT:
-				self.thread_traitment();
-				self.Z -= 0.1;
-				self.canvas.itemconfig(self.alt_t, text="Alt : "+str(int(self.Z))+"m");
-				self.canvas.update();
-				time.sleep(time_sleep);
+			print("Drone "+str(self.id)+" - Landing phase")
+			self.landing_phase();
 				
-
-
 			if g.CONTINUE:
 				self.state = drone_back;	# Drone back of a mission ready for inspection
 				self.label.config(bg="blue", text="DRONE "+str(self.id+1)+"\nBack");
@@ -412,10 +393,7 @@ class Drone(Thread):
 		if g.CONTINUE:
 			print ("---- START MOVE : "+str(self.kind)+" - "+str(self.id)+ " ----\n");
 
-		if self.kind == "ennemi":
-			self.ennemi_movement();
-		elif self.kind == "ally":
-			self.drone_movement();
+		self.drone_movement();
 
 		if g.CONTINUE:
 			if self.state == drone_out: 

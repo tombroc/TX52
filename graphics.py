@@ -3,6 +3,7 @@
 # -*-iso-8859-15 -*
 import os
 from drone import Drone
+from ennemi import Ennemi
 from radar import Radar
 from tkinter import *
 import time
@@ -13,11 +14,12 @@ REAL_SCOPE_SCALE = REAL_SCOPE;
 VIRTUAL_SCOPE = 0;
 # Height equivalency (in meters)
 HEIGHT_SCALE = 400;
-HEIGHT_CANVAS = 0;
-WIDTH_CANVAS = 0;
+HEIGHT_CANVAS = 800;
+WIDTH_CANVAS = 990;
 NUMBER_ALLY_DRONE = 2;
 NUMBER_DRONE = 6;
 CONTINUE = True;
+ORIGINE_Y = HEIGHT_CANVAS;
 
 class Window():
 
@@ -27,8 +29,8 @@ class Window():
 	def get_noDrone_l(self):
 		return self.noDrone_l;
 		
-	def get_height_canvas(self):
-		return HEIGHT_CANVAS;
+	def get_origine_Y(self):
+		return ORIGINE_Y;
 
 	def get_width_canvas(self):
 		return WIDTH_CANVAS;
@@ -95,8 +97,6 @@ class Window():
 		HEIGHT = 1000;
 		WIDTH = 1300;
 		
-		HEIGHT_CANVAS = 800;
-		WIDTH_CANVAS = 990;
 		
 		self.win.geometry("%dx%d%+d%+d" % (WIDTH,HEIGHT_CANVAS + 100,(self.win.winfo_screenwidth()-WIDTH)/2,(self.win.winfo_screenheight()-HEIGHT)/2));
 
@@ -181,7 +181,6 @@ class Window():
 		global HEIGHT_CANVAS;
 		global REAL_SCOPE_SCALE;
 
-
 		# Detection zone 
 
 		self.CANVAS_C.delete("ennemi_0");
@@ -191,7 +190,7 @@ class Window():
 		VIRTUAL_SCOPE = REAL_SCOPE_SCALE * HEIGHT_CANVAS / HEIGHT_SCALE;
 
 		x0 = WIDTH_CANVAS / 2;
-		y0 = HEIGHT_CANVAS;
+		y0 = ORIGINE_Y;
 		r = 20;
 
 		while r < VIRTUAL_SCOPE:
@@ -209,9 +208,7 @@ class Window():
 
 	def add_ennemi(self, KIND, IDENTIFIER):
 		
-		global HEIGHT_CANVAS;
 		global WIDTH_CANVAS;
-		global HEIGHT_SCALE;
 
 		self.intruder_b.config(state=DISABLED);
 		#self.scale_s.config(state=DISABLED);
@@ -220,7 +217,7 @@ class Window():
 		Y = 0;
 		Z = 200;
 
-		thread_drone = Drone(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, self.drone_list, []);
+		thread_drone = Ennemi(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, self.drone_list, []);
 		
 		self.ennemi_list.append(thread_drone);
 
@@ -236,19 +233,6 @@ class Window():
 		window.destroy();
 
 	def __init__(self, drone_list):
-
-		global REAL_SCOPE;
-		global REAL_SCOPE_SCALE;
-		
-		# Height equivalency (in meters)
-		global HEIGHT_SCALE;
-
-		# Scope at scale
-		global VIRTUAL_SCOPE;
-
-		global HEIGHT_CANVAS;
-		global WIDTH_CANVAS;
-		global CONTINUE;
 
 		self.ennemi_list = [];
 		self.drone_list  = drone_list;
