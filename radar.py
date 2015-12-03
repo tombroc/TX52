@@ -12,7 +12,7 @@ import random
 
 
 class Radar(Thread):
-	def __init__(self, thread_list, CANVAS_C, label_list, intruder_b, noDrone_l, repare_b):
+	def __init__(self, thread_list, CANVAS_C, label_list, intruder_b, repare_b):
 		Thread.__init__(self);
 		self.id           = len(thread_list);
 		self.thread_list  = thread_list;
@@ -20,7 +20,6 @@ class Radar(Thread):
 		self.canvas       = CANVAS_C;
 		self.label_list   = label_list;
 		self.intruder_b   = intruder_b;
-		self.noDrone_l    = noDrone_l;
 		self.repare_b     = repare_b;
 		self.state_thread = "ON";
 		self.kind         = "radar";
@@ -101,37 +100,32 @@ class Radar(Thread):
 				if thread.kind == "ally" and thread.state in (drone_flying, drone_backprogress):
 					mission = 1;
 
-			if num_ennemi == 0 and mission == 0:
-				self.intruder_b.config(state=NORMAL);
-
+			num = 0;
+			num_not_ready = 0;
 			if intruder == 1:
 				i = 0;
-				num = 0;
-				test = False;
+				test = 0;
+
 				for thread in self.thread_list:
 					if thread.kind == "ally" and thread.state == drone_ready and num < g.NUMBER_ALLY_DRONE:
-						print ("start drone")
+						print ("start drone"+str(thread.id))
 						thread.state = drone_flying;
-						thread.traject = self.canvas.create_line(thread.X, thread.Y, self.thread_list[ennemi_id].X, self.thread_list[ennemi_id].Y);
+						thread.traject = self.canvas.create_line(thread.X, thread.Y, self.thread_list[ennemi_id].X, self.thread_list[ennemi_id].Y, tags="line");
 						print ("ennemi_id = "+str(ennemi_id))
 						thread.target_id = ennemi_id;
 						thread.state_thread = "ON";
 						thread.start();
-						self.label_list[thread.id-1].config(bg="yellow", text="DRONE "+str(i)+"\nIn mission");
+						self.label_list[thread.id].config(bg="yellow", text="DRONE "+str(thread.id+1)+"\nIn mission");
 						num += 1
-					i += 1;
+					i += 1;	
+				num = 0;
+			for thread in self.thread_list:
+				if thread.kind == "ally":
+					if thread.state != drone_ready:
+						num_not_ready = num_not_ready + 1;
 
-				for drone in self.thread_list:
-					if drone.kind == "ally" and drone.state == drone_ready:
-						test = test + 1;
-			
-				if test < g.NUMBER_ALLY_DRONE:
-					if test == 0:					
-						self.noDrone_l.config(text="No drone available");
-					else:
-						self.noDrone_l.config(text="Not enough drone ready for a mission with those settings");
-					self.noDrone_l.grid(row=9, column=2, columnspan=4);
-					self.repare_b.grid(row=10, column=2, columnspan=4);
+			if num_not_ready == g.NUMBER_DRONE:
+				self.repare_b.grid(row=16, column=2, columnspan=2);
 
 				test = 0;
 			intruder = 0;

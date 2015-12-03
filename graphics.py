@@ -9,33 +9,47 @@ from tkinter import *
 import time
 import random
 
-time_sleep        = 0.001;
-REAL_SCOPE        = 350;
+time_sleep            = 0.001;
+# Real scope in meter
+REAL_SCOPE            = 350;
+# Virtual scope in px
+VIRTUAL_SCOPE         = 0;
+# Height of the zone in meter
+HEIGHT_ZONE           = 400;
+# With of the zone in meter
+WIDTH_ZONE            = 495;
+# ration between px and meter
+DIMENSION_COEFFICIENT = 2;
+# In px
+HEIGHT_CANVAS         = HEIGHT_ZONE * DIMENSION_COEFFICIENT;
+# In px
+WIDTH_CANVAS          = WIDTH_ZONE * DIMENSION_COEFFICIENT;
+# Drone send while an attack
+NUMBER_ALLY_DRONE     = 2;
+# Initial stock of drone
+NUMBER_DRONE          = 2;
+# General shutdown
+CONTINUE              = True;
+# Origine = position of the radar
+ORIGINE_Y             = HEIGHT_ZONE * DIMENSION_COEFFICIENT;
 
-REAL_SCOPE_SCALE  = REAL_SCOPE;
-VIRTUAL_SCOPE     = 0;
-# Height equivalency (in meters)
-HEIGHT_SCALE      = 400;
-HEIGHT_CANVAS     = 800;
-WIDTH_CANVAS      = 990;
-NUMBER_ALLY_DRONE = 2;
-NUMBER_DRONE      = 6;
-CONTINUE          = True;
-ORIGINE_Y         = HEIGHT_CANVAS;
+drone_out            = 0;
+drone_ready          = 2;
+drone_flying         = 3;
+drone_back           = 4;	# Drone back of a mission ready for inspection
+drone_ennemi_ready   = 7;
+drone_ennemi_escaped = 8;
 
 class Window():
 
 	def get_repare_b(self):
 		return self.repare_b;
-
-	def get_noDrone_l(self):
-		return self.noDrone_l;
 		
 	def get_origine_Y(self):
 		return ORIGINE_Y;
 
-	def get_width_canvas(self):
-		return WIDTH_CANVAS;
+	def get_width_zone(self):
+		return WIDTH_ZONE;
 
 	def get_ennemi_list(self):
 		return self.ennemi_list;
@@ -73,21 +87,18 @@ class Window():
 
 		global NUMBER_DRONE;
 		num = 0;
+		col = 2;
+		line = 6;
 		# Drones label
 		for num in range(NUMBER_DRONE):
-
 			name = "DRONE "+str(num+1);
 			name = Label(self.win, text=name+"\nReady", relief=RAISED, width=10, height=5, bg="green");
 			self.label_list.append(name);
-			if num < 2:
-				name.grid(row=6, column=num+2, padx=10, pady=10);
-
-			elif num < 4:
-				name.grid(row=7, column=num+2-2, padx=10, pady=10);
-			else:
-				name.grid(row=8, column=num+2-4, padx=10, pady=10);
-
-		self.noDrone_l = Label(self.win, text="No drone available", relief=RAISED);
+			name.grid(row=line, column=col, padx=10, pady=10);
+			col = col + 1;
+			if col == 4:
+				col = 2;
+				line = line + 1;
 
 	def create_main_window(self):
 
@@ -101,16 +112,17 @@ class Window():
 		
 		
 		self.win.geometry("%dx%d%+d%+d" % (WIDTH,HEIGHT_CANVAS + 100,(self.win.winfo_screenwidth()-WIDTH)/2,(self.win.winfo_screenheight()-HEIGHT)/2));
-		#self.win.protocol("WM_DELETE_WINDOW", self.exit(self.win, False));
-
-		#self.win.mainloop();
 
 	def create_simulation_zone(self):
 		# Simulation zone
-
+		with_scale_line = 3
 		self.CANVAS_C = Canvas(self.win, width = WIDTH_CANVAS, height = HEIGHT_CANVAS, bg ='#30A030', bd=5, relief=SUNKEN);
 		self.CANVAS_C.grid(row=3, column=1, rowspan=20, padx=10, pady=10);
-		
+		self.CANVAS_C.create_line(20, ORIGINE_Y, 20 + 50, ORIGINE_Y, width=with_scale_line);
+		self.CANVAS_C.create_line(20, ORIGINE_Y - 5, 20, ORIGINE_Y + 5, width=with_scale_line);
+		self.CANVAS_C.create_line(20 + 50, ORIGINE_Y - 5, 20 + 50, ORIGINE_Y + 5, width=with_scale_line);
+		self.CANVAS_C.create_text(20 + 25, ORIGINE_Y - 8, text="25m", font=("Purisa",13,"bold"));
+
 	def create_title_label(self):
 		# Label title
 		self.main_l = Label(self.win, text='Drones interception simulation', font=("Purisa",12,"bold","italic"));
@@ -118,75 +130,59 @@ class Window():
 
 	def create_repare_button(self):
 		
-		self.repare_b = Button(self.win, text='Repare drones')#, command=lambda:self.repare_drone());
+		self.repare_b = Button(self.win, text='Repare drones', command=lambda:self.repare_drone());
 
 	def repare_drone(self):	
-
-		drone_ready = 2;
-		drone_back  = 4;
-		for i in range(NUMBER_DRONE):
-			if self.thread_list[i].state == drone_back:
-				self.thread_list[i].state = drone_ready;
-		self.noDrone_l.grid_forget();
+		p = 30;
+		self.CANVAS_C.delete(self.win,"ennemi");
+		self.CANVAS_C.delete(self.win,"drone");
+		self.CANVAS_C.delete(self.win,"alt");
+		self.CANVAS_C.delete(self.win,"text");
+		self.CANVAS_C.delete(self.win,"line");
+		for thread in self.thread_list:
+			if thread.kind == "ally" and thread.state in (drone_back, drone_out, drone_flying):
+				X = ((WIDTH_ZONE - NUMBER_DRONE * p) / 2 + p * thread.id + p/2) * DIMENSION_COEFFICIENT;
+				Y = ORIGINE_Y - 20 * DIMENSION_COEFFICIENT;
+				Z = 0;
+				drone = Drone(self.CANVAS_C, thread.id, X, Y, Z, self.thread_list, self.label_list[thread.id], 0, -1);
+				thread = drone;
+				thread.label.config(bg="green", text="DRONE "+str(thread.id+1)+"\nReady");
 		self.repare_b.grid_forget();
-
-	def create_settings_button(self):
-		# Settings
-		#self.settings_i = PhotoImage(file="settings.gif");
-		self.logo_settings = PhotoImage(file="images/settings.GIF");
-		self.settings_b = Button(self.win, text="Settings", command=lambda:self.settings_window());#image=self.settings_i);
-		self.settings_b.config(image=self.logo_settings);
-		self.settings_b.grid(row=20, column=2);
 
 	def create_quit_button(self):
 		# exit button
 		self.quit_b = Button(self.win,text='Exit', command=lambda:self.exit(self.win, False));
-		self.quit_b.grid(row=20, column=3, padx=10, pady=10);
+		self.quit_b.grid(row=20, column=2, columnspan=2);
 
-	def settings_window(self):
+	def settings(self):
 
 		global NUMBER_DRONE;
-		global REAL_SCOPE_SCALE;
+		global REAL_SCOPE;
 		retour = 0;
 
-		#Settings window
-		self.settings = Tk();
-		self.settings.title("Settings");
-		self.settings.geometry("%dx%d%+d%+d" % (350,200,(self.win.winfo_screenwidth()-1400)/2,(self.win.winfo_screenheight()-1000)/2));
-		self.nbDroneByAttack_s = Scale(self.settings, from_=1, to=NUMBER_DRONE, orient=HORIZONTAL);
+		self.nbDroneByAttack_s = Scale(self.win, from_=1, to=NUMBER_DRONE, orient=HORIZONTAL, length=200, command=lambda code=retour:self.updateSettingsAlly());
 		self.nbDroneByAttack_s.set(NUMBER_ALLY_DRONE)
-		self.nbDroneByAttack_s.grid(row=1, column=1, columnspan=2);
+		self.nbDroneByAttack_s.grid(row=17, column=2, columnspan=2);
 		# Scope scale
-		self.scale_l = Label(self.settings, text='Scope value :');
-		self.scale_l.grid(row=2, column=1, columnspan=2);
-		self.scale_s = Scale(self.settings, from_=1, to=REAL_SCOPE*2, orient=HORIZONTAL, length=300, command=lambda code=retour:self.draw_radar_zone());
-		self.scale_s.set(REAL_SCOPE_SCALE);
-		self.scale_s.grid(row=3, column=1, columnspan=2, padx=25);
+		self.scale_l = Label(self.win, text='Scope value :');
+		self.scale_l.grid(row=18, column=2, columnspan=2);
+		self.scale_s = Scale(self.win, from_=1, to=REAL_SCOPE*2, orient=HORIZONTAL, length=200, command=lambda code=retour:self.draw_radar_zone());
+		self.scale_s.set(REAL_SCOPE);
+		self.scale_s.grid(row=19, column=2, columnspan=2);
 
-		self.updateSettings_b = Button(self.settings, text="Validate", command=lambda:self.updateSettings(self.settings));
-		self.updateSettings_b.grid(row=4, column=1, pady=25, columnspan=2);
 		
-		self.settings.mainloop();
 
-	def updateSettings(self, window):
+	def updateSettingsAlly(self):
 
 		global NUMBER_ALLY_DRONE;
-		global REAL_SCOPE;
-
-		print("Updating settings...");
 		NUMBER_ALLY_DRONE = self.nbDroneByAttack_s.get();
-		REAL_SCOPE = self.scale_s.get();
-		self.draw_radar_zone();
-		print ("Number ally drone = "+str(NUMBER_ALLY_DRONE));
-		print ("Scope = "+str(REAL_SCOPE));
-		self.exit(window, True);
+		code = 0;
+		return code;
 
 	def draw_radar_zone(self):
 
 		global VIRTUAL_SCOPE;
-		global HEIGHT_SCALE;
-		global HEIGHT_CANVAS;
-		global REAL_SCOPE_SCALE;
+		global REAL_SCOPE;
 
 		# Detection zone 
 
@@ -194,7 +190,7 @@ class Window():
 		self.CANVAS_C.delete("alt_0");
 		self.CANVAS_C.delete("arcs");
 
-		VIRTUAL_SCOPE = REAL_SCOPE_SCALE * HEIGHT_CANVAS / HEIGHT_SCALE;
+		VIRTUAL_SCOPE = REAL_SCOPE * DIMENSION_COEFFICIENT;
 
 		x0 = WIDTH_CANVAS / 2;
 		y0 = ORIGINE_Y;
@@ -206,7 +202,7 @@ class Window():
 			r += 10;
 
 		try:
-			REAL_SCOPE_SCALE = self.scale_s.get();
+			REAL_SCOPE = self.scale_s.get();
 		except:
 			pass;
 
@@ -222,6 +218,7 @@ class Window():
 		
 		X = random.uniform(0, WIDTH_CANVAS);
 		Y = 0;
+		# Dimension in Z is in meter
 		Z = 200;
 
 		ennemi = Ennemi(self.CANVAS_C, X, Y, Z, self.thread_list, []);
@@ -259,12 +256,12 @@ class Window():
 		self.create_repare_button();
 		
 		self.create_ennemi_button();
-
-		self.create_settings_button();
 		
 		self.draw_radar_zone();
 		
 		self.create_quit_button();
+
+		self.settings();
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#

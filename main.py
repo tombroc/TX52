@@ -1,4 +1,5 @@
 from graphics import Window
+import graphics as g
 from radar import Radar
 from drone import Drone
 import time
@@ -9,12 +10,6 @@ thread_list = [];
 current_thread = 0;
 
 if __name__ == '__main__':
-
-	REAL_SCOPE         = 350;
-	VIRTUAL_SCOPE      = 0;
-	# Height equivalency (in meters)
-	HEIGHT_SCALE       = 400;
-	NUMBER_ALLY_DRONE  = 1;
 	
 	# Possible state of a drone
 	drone_out          = 0;	# Drone on his spot but damage so a fly is impossible 
@@ -25,18 +20,18 @@ if __name__ == '__main__':
 	drone_destroyed    = 5;	# Drone destroyed during a mission
 	drone_detected     = 6;	# Drone ennemi dedetected
 	
-
+	p = 30
 	Win = Window(thread_list);
 	
-	radar = Radar(thread_list, Win.get_canvas(), Win.get_label_list(), Win.get_intruder_b(), Win.get_noDrone_l(), Win.get_repare_b());
+	radar = Radar(thread_list, Win.get_canvas(), Win.get_label_list(), Win.get_intruder_b(), Win.get_repare_b());
 	thread_list.append(radar);
-	print ("---- Drones 1 to 6 initialization ----");
-	for i in range(6):
+	print ("---- Drones 1 to "+str(g.NUMBER_DRONE)+" initialization ----");
+	for i in range(g.NUMBER_DRONE):
 		print ("Drone : "+ str(i+1));
-		X = (Win.get_width_canvas() - 6 * 100) /2 + 100*i + 50;
-		Y = Win.get_origine_Y() - 20;
+		X = ((Win.get_width_zone() - g.NUMBER_DRONE * p) / 2 + p * i + p/2) * g.DIMENSION_COEFFICIENT;
+		Y = Win.get_origine_Y() - 20 * g.DIMENSION_COEFFICIENT;
 		Z = 0;
-		drone = Drone(Win.get_canvas(), X, Y, Z, thread_list, Win.get_label_list()[i], 0, -1);
+		drone = Drone(Win.get_canvas(), i, X, Y, Z, thread_list, Win.get_label_list()[i], 0, -1);
 		thread_list.append(drone);
 
 
