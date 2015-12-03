@@ -3,6 +3,11 @@ from radar import Radar
 from drone import Drone
 import time
 
+
+
+thread_list = [];
+current_thread = 0;
+
 if __name__ == '__main__':
 
 	REAL_SCOPE         = 350;
@@ -20,22 +25,21 @@ if __name__ == '__main__':
 	drone_destroyed    = 5;	# Drone destroyed during a mission
 	drone_detected     = 6;	# Drone ennemi dedetected
 	
-	drone_list = [];
 
-	Win = Window(drone_list);
+	Win = Window(thread_list);
 	
-	Radar = Radar(drone_list, Win.get_ennemi_list(), Win.get_canvas(), Win.get_label_list(), Win.get_intruder_b(), Win.get_noDrone_l(), Win.get_repare_b());
-	
+	radar = Radar(thread_list, Win.get_canvas(), Win.get_label_list(), Win.get_intruder_b(), Win.get_noDrone_l(), Win.get_repare_b());
+	thread_list.append(radar);
 	print ("---- Drones 1 to 6 initialization ----");
 	for i in range(6):
 		print ("Drone : "+ str(i+1));
 		X = (Win.get_width_canvas() - 6 * 100) /2 + 100*i + 50;
 		Y = Win.get_origine_Y() - 20;
 		Z = 0;
-		drone = Drone("ally", i, Win.get_canvas(), X, Y, Z, Win.get_ennemi_list(), drone_list, Win.get_label_list()[i]);
-		drone_list.append(drone);
-
-	Radar.start();
+		drone = Drone(Win.get_canvas(), X, Y, Z, thread_list, Win.get_label_list()[i], 0, -1);
+		thread_list.append(drone);
 
 
+	radar.start();
+	
 	Win.get_window().mainloop();

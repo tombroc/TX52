@@ -9,17 +9,19 @@ from tkinter import *
 import time
 import random
 
-REAL_SCOPE = 350;
-REAL_SCOPE_SCALE = REAL_SCOPE;
-VIRTUAL_SCOPE = 0;
+time_sleep        = 0.001;
+REAL_SCOPE        = 350;
+
+REAL_SCOPE_SCALE  = REAL_SCOPE;
+VIRTUAL_SCOPE     = 0;
 # Height equivalency (in meters)
-HEIGHT_SCALE = 400;
-HEIGHT_CANVAS = 800;
-WIDTH_CANVAS = 990;
+HEIGHT_SCALE      = 400;
+HEIGHT_CANVAS     = 800;
+WIDTH_CANVAS      = 990;
 NUMBER_ALLY_DRONE = 2;
-NUMBER_DRONE = 6;
-CONTINUE = True;
-ORIGINE_Y = HEIGHT_CANVAS;
+NUMBER_DRONE      = 6;
+CONTINUE          = True;
+ORIGINE_Y         = HEIGHT_CANVAS;
 
 class Window():
 
@@ -63,7 +65,7 @@ class Window():
 		KIND_ENNEMI = "ennemi";
 		# Add "ennemi" button
 		self.logo = PhotoImage(file="images/cible.gif");
-		self.intruder_b = Button(self.win, text='Add target', width=50, height=50, command=lambda: self.add_ennemi(KIND_ENNEMI, 0));
+		self.intruder_b = Button(self.win, text='Add target', width=50, height=50, command=lambda: self.add_ennemi());
 		self.intruder_b.config(image=self.logo);
 		self.intruder_b.grid(row=5, column=2, columnspan=2);
 
@@ -99,6 +101,9 @@ class Window():
 		
 		
 		self.win.geometry("%dx%d%+d%+d" % (WIDTH,HEIGHT_CANVAS + 100,(self.win.winfo_screenwidth()-WIDTH)/2,(self.win.winfo_screenheight()-HEIGHT)/2));
+		#self.win.protocol("WM_DELETE_WINDOW", self.exit(self.win, False));
+
+		#self.win.mainloop();
 
 	def create_simulation_zone(self):
 		# Simulation zone
@@ -120,8 +125,8 @@ class Window():
 		drone_ready = 2;
 		drone_back  = 4;
 		for i in range(NUMBER_DRONE):
-			if self.drone_list[i].state == drone_back:
-				self.drone_list[i].state = drone_ready;
+			if self.thread_list[i].state == drone_back:
+				self.thread_list[i].state = drone_ready;
 		self.noDrone_l.grid_forget();
 		self.repare_b.grid_forget();
 
@@ -166,12 +171,14 @@ class Window():
 	def updateSettings(self, window):
 
 		global NUMBER_ALLY_DRONE;
+		global REAL_SCOPE;
 
 		print("Updating settings...");
 		NUMBER_ALLY_DRONE = self.nbDroneByAttack_s.get();
+		REAL_SCOPE = self.scale_s.get();
 		self.draw_radar_zone();
 		print ("Number ally drone = "+str(NUMBER_ALLY_DRONE));
-		print ("Scope = "+str(NUMBER_ALLY_DRONE));
+		print ("Scope = "+str(REAL_SCOPE));
 		self.exit(window, True);
 
 	def draw_radar_zone(self):
@@ -206,22 +213,21 @@ class Window():
 		code = 1;
 		return code;
 
-	def add_ennemi(self, KIND, IDENTIFIER):
+	def add_ennemi(self):
 		
 		global WIDTH_CANVAS;
 
-		self.intruder_b.config(state=DISABLED);
+		#self.intruder_b.config(state=DISABLED);
 		#self.scale_s.config(state=DISABLED);
 		
 		X = random.uniform(0, WIDTH_CANVAS);
 		Y = 0;
 		Z = 200;
 
-		thread_drone = Ennemi(KIND, IDENTIFIER, self.CANVAS_C, X, Y, Z, self.ennemi_list, self.drone_list, []);
+		ennemi = Ennemi(self.CANVAS_C, X, Y, Z, self.thread_list, []);
 		
-		self.ennemi_list.append(thread_drone);
-
-		thread_drone.start();
+		self.thread_list.append(ennemi);
+		ennemi.start();
 
 	def exit(self, window, value):
 
@@ -232,10 +238,10 @@ class Window():
 		#	self.settings.destroy();
 		window.destroy();
 
-	def __init__(self, drone_list):
+	def __init__(self, thread_list):
 
-		self.ennemi_list = [];
-		self.drone_list  = drone_list;
+		self.thread_list = thread_list;
+
 		self.label_list  = [];
 
 		#---------------------------------------------------------------------------------------------------------------#
@@ -259,7 +265,6 @@ class Window():
 		self.draw_radar_zone();
 		
 		self.create_quit_button();
-		
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
