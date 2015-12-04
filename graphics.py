@@ -27,7 +27,7 @@ WIDTH_CANVAS          = WIDTH_ZONE * DIMENSION_COEFFICIENT;
 # Drone send while an attack
 NUMBER_ALLY_DRONE     = 2;
 # Initial stock of drone
-NUMBER_DRONE          = 2;
+NUMBER_DRONE          = 10;
 # General shutdown
 CONTINUE              = True;
 # Origine = position of the radar
@@ -144,8 +144,9 @@ class Window():
 				X = ((WIDTH_ZONE - NUMBER_DRONE * p) / 2 + p * thread.id + p/2) * DIMENSION_COEFFICIENT;
 				Y = ORIGINE_Y - 20 * DIMENSION_COEFFICIENT;
 				Z = 0;
+				self.thread_list.pop(self.thread_list.index(thread));
 				drone = Drone(self.CANVAS_C, thread.id, X, Y, Z, self.thread_list, self.label_list[thread.id], 0, -1);
-				thread = drone;
+				self.thread_list.append(drone);
 				thread.label.config(bg="green", text="DRONE "+str(thread.id+1)+"\nReady");
 		self.repare_b.grid_forget();
 
