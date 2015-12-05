@@ -23,6 +23,7 @@ class Radar(Thread):
 		self.repare_b     = repare_b;
 		self.state_thread = "ON";
 		self.kind         = "radar";
+		self.state        = -1;
 
 		self.event.set();
 
@@ -122,10 +123,12 @@ class Radar(Thread):
 			for thread in self.thread_list:
 				if thread.kind == "ally":
 					if thread.state != drone_ready:
+						#print ("thread.id+1 = "+str(thread.id+1)+" thread.state = "+str(thread.state))
 						num_not_ready = num_not_ready + 1;
 
+			#print ("num_not_ready = "+str(num_not_ready))
 			if num_not_ready == g.NUMBER_DRONE:
-				self.repare_b.grid(row=16, column=2, columnspan=2);
+				self.repare_b.grid(row=15, column=2, columnspan=2);
 
 				test = 0;
 			intruder = 0;

@@ -33,6 +33,7 @@ if __name__ == '__main__':
 		Z = 0;
 		drone = Drone(Win.get_canvas(), i, X, Y, Z, thread_list, Win.get_label_list()[i], 0, -1);
 		thread_list.append(drone);
+		print ("id = "+str(thread_list[i+1].id)+" "+str(thread_list[i+1].kind))
 
 
 	radar.start();

@@ -27,7 +27,7 @@ WIDTH_CANVAS          = WIDTH_ZONE * DIMENSION_COEFFICIENT;
 # Drone send while an attack
 NUMBER_ALLY_DRONE     = 2;
 # Initial stock of drone
-NUMBER_DRONE          = 10;
+NUMBER_DRONE          = 2;
 # General shutdown
 CONTINUE              = True;
 # Origine = position of the radar
@@ -134,20 +134,33 @@ class Window():
 
 	def repare_drone(self):	
 		p = 30;
+		temp_pop_list = [];
+		temp_append_list = [];
+
 		self.CANVAS_C.delete(self.win,"ennemi");
 		self.CANVAS_C.delete(self.win,"drone");
 		self.CANVAS_C.delete(self.win,"alt");
 		self.CANVAS_C.delete(self.win,"text");
 		self.CANVAS_C.delete(self.win,"line");
 		for thread in self.thread_list:
+
 			if thread.kind == "ally" and thread.state in (drone_back, drone_out, drone_flying):
 				X = ((WIDTH_ZONE - NUMBER_DRONE * p) / 2 + p * thread.id + p/2) * DIMENSION_COEFFICIENT;
 				Y = ORIGINE_Y - 20 * DIMENSION_COEFFICIENT;
 				Z = 0;
-				self.thread_list.pop(self.thread_list.index(thread));
+
 				drone = Drone(self.CANVAS_C, thread.id, X, Y, Z, self.thread_list, self.label_list[thread.id], 0, -1);
-				self.thread_list.append(drone);
+				temp_append_list.append(drone);
 				thread.label.config(bg="green", text="DRONE "+str(thread.id+1)+"\nReady");
+				temp_pop_list.append(thread.id);
+	
+		for index in temp_pop_list:
+			for thread in self.thread_list:
+				if (thread.kind == "ally" and thread.id == index) or (thread.kind == "ennemi"):
+					self.thread_list.pop(self.thread_list.index(thread));
+
+		for drone in temp_append_list:
+			self.thread_list.append(drone);
 		self.repare_b.grid_forget();
 
 	def create_quit_button(self):
@@ -161,6 +174,8 @@ class Window():
 		global REAL_SCOPE;
 		retour = 0;
 
+		self.nbDroneByAttack_l = Label(self.win, text='Drones for interception :');
+		self.nbDroneByAttack_l.grid(row=16, column=2, columnspan=2);
 		self.nbDroneByAttack_s = Scale(self.win, from_=1, to=NUMBER_DRONE, orient=HORIZONTAL, length=200, command=lambda code=retour:self.updateSettingsAlly());
 		self.nbDroneByAttack_s.set(NUMBER_ALLY_DRONE)
 		self.nbDroneByAttack_s.grid(row=17, column=2, columnspan=2);

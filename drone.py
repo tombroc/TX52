@@ -23,8 +23,6 @@ class Drone(Thread):
 
 	def __init__(self, CANVAS_C, Id, X, Y, Z, thread_list, label, traject, target_id):
 		Thread.__init__(self);
-		drone_ready               = 2;	# Drone on his spot and operational
-		drone_ennemi_ready        = 7;	# Drone ennemi ready
 		
 		self.canvas               = CANVAS_C;
 		self.id                   = Id;
@@ -44,7 +42,6 @@ class Drone(Thread):
 		tags                      = "drone";
 		color                     = "blue";
 		position                  = "ne"
-		state                     = drone_ready;
 		offset                    = -self.simulation_diameter-15;
 		self.speed                = 0;
 		self.real_speed_max       = 11; # In meter/s 
@@ -57,7 +54,7 @@ class Drone(Thread):
 		alt                       = "Alt : "+ str(self.Z) +"m";
 		self.drone                = CANVAS_C.create_polygon(self.X, self.Y, self.X+self.simulation_diameter+5, self.Y+self.simulation_diameter+5, self.X, self.Y+self.simulation_diameter+2.5, self.X-self.simulation_diameter-5, self.Y+self.simulation_diameter+5, tags=tags, fill=color);
 		self.alt_t                = CANVAS_C.create_text(self.X, self.Y+45, anchor="s", text=alt, tags="alt", fill=color);
-		self.state                = state;
+		self.state                = drone_ready;
 		self.state_thread         = "OFF";
 		self.target_id            = target_id;
 		self.thread_list          = thread_list;
@@ -126,7 +123,6 @@ class Drone(Thread):
 		COEFF_SLOW_DOWN = self.deceleration_coeff * self.simulation_speed_max;
 		if self.speed - COEFF_SLOW_DOWN >= speed * g.DIMENSION_COEFFICIENT:
 			self.speed = self.speed - COEFF_SLOW_DOWN;
-			print ("speed"+str(self.speed))
 
 	def acceleration_phase(self):
 		COEFF_ACCELERATION = self.acceleration_coeff * self.simulation_speed_max;
@@ -189,8 +185,7 @@ class Drone(Thread):
 			self.Uturn_phase(2);
 			while (self.out_diameter(self.X, self.X_SPOT)
 				or self.out_diameter(self.Y, self.Y_SPOT)) and g.CONTINUE:
-				print ("In the coming back loop")
-				
+
 				self.thread_traitment(True);
 
 				if (self.abs(self.X-self.X_SPOT) < 4 * g.DIMENSION_COEFFICIENT or self.abs(self.Y-self.Y_SPOT) < 4 * g.DIMENSION_COEFFICIENT):
@@ -251,7 +246,6 @@ class Drone(Thread):
 		newY = self.go_back(t * newb);
 		newZ = self.Z;
 
-		print(round(self.Z+1, 0));
 		# Target is an ennemi
 		if TARGET_KIND == 0:
 			self.label.config(text="DRONE "+str(self.id+1)+"\nIn mission\n"+str(round(self.speed / g.DIMENSION_COEFFICIENT * 10, 1))+"m/s");
