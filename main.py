@@ -2,6 +2,7 @@ from graphics import Window
 import graphics as g
 from radar import Radar
 from drone import Drone
+from utils import Utils
 import time
 
 
@@ -20,10 +21,17 @@ if __name__ == '__main__':
 	drone_destroyed    = 5;	# Drone destroyed during a mission
 	drone_detected     = 6;	# Drone ennemi dedetected
 	
-	p = 30
-	Win = Window(thread_list);
+	p                  = 30
 	
-	radar = Radar(thread_list, Win.get_canvas(), Win.get_label_list(), Win.get_intruder_b(), Win.get_repare_b());
+	utils              = Utils(thread_list);
+	
+	Win                = Window(utils, thread_list);
+
+	utils.canvas       = Win.get_canvas();
+	utils.label_list   = Win.get_label_list();
+	utils.win          = Win;
+	
+	radar = Radar(utils, thread_list, Win.get_canvas(), Win.get_label_list(), Win.get_repare_b());
 	thread_list.append(radar);
 	print ("---- Drones 1 to "+str(g.NUMBER_DRONE)+" initialization ----");
 	for i in range(g.NUMBER_DRONE):
@@ -31,9 +39,8 @@ if __name__ == '__main__':
 		X = ((Win.get_width_zone() - g.NUMBER_DRONE * p) / 2 + p * i + p/2) * g.DIMENSION_COEFFICIENT;
 		Y = Win.get_origine_Y() - 20 * g.DIMENSION_COEFFICIENT;
 		Z = 0;
-		drone = Drone(Win.get_canvas(), i, X, Y, Z, thread_list, Win.get_label_list()[i], 0, -1);
+		drone = Drone(utils, Win.get_canvas(), i, X, Y, Z, thread_list, Win.get_label_list()[i]);
 		thread_list.append(drone);
-		print ("id = "+str(thread_list[i+1].id)+" "+str(thread_list[i+1].kind))
 
 
 	radar.start();

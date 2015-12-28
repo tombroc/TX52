@@ -5,60 +5,27 @@ import os
 import graphics as g
 from drone import Drone
 from tkinter import *
-from threading import Thread, RLock, Event
+from threading import Thread, Event
 from math import sqrt
 import time
 import random
 
 
 class Radar(Thread):
-	def __init__(self, thread_list, CANVAS_C, label_list, intruder_b, repare_b):
+	def __init__(self, utils, thread_list, CANVAS_C, label_list, repare_b):
 		Thread.__init__(self);
 		self.id           = len(thread_list);
 		self.thread_list  = thread_list;
 		self.event        = Event();
 		self.canvas       = CANVAS_C;
 		self.label_list   = label_list;
-		self.intruder_b   = intruder_b;
 		self.repare_b     = repare_b;
 		self.state_thread = "ON";
 		self.kind         = "radar";
 		self.state        = -1;
+		self.utils = utils;
 
 		self.event.set();
-
-	def thread_traitment(self):
-		
-		# If there is only on thread, it keeps running...
-		next_thread_id = 0;
-
-		if len(self.thread_list) > 1:
-			# If the test return the last element of the list
-			#print ("len(self.thread_list)-1 : "+str(len(self.thread_list)-1));
-			if self.id == len(self.thread_list)-1:
-				#print ("Last thread of the list -> go back to the first one");
-				#print ("Previous thread id : "+str(self.id));
-				next_thread_id = 0;
-			else: 
-				#print ("Not the last thread of the list -> go to the next one");
-				#print ("Previous thread id : "+str(self.id));
-				next_thread_id = self.id+1;
-			#print ("Next thread id : "+str(next_thread_id));
-			#print ("len(self.thread_list) "+str(len(self.thread_list)));
-			#print ("next_thread_id "+str(next_thread_id))
-			while self.thread_list[next_thread_id].state_thread != "ON" and g.CONTINUE:
-				if next_thread_id == len(self.thread_list)-1:
-					next_thread_id = 0;
-				else:
-					next_thread_id = next_thread_id + 1;
-
-			if self.id == len(self.thread_list)-1:
-				next_thread_id = 0;
-			#print ("Changing thread from "+str(self.kind) +" "+str(self.id+1)+" to "+str(self.kind) +" "+str(self.thread_list[next_thread_id].id+1));
-			self.thread_list[next_thread_id].event.clear();
-			self.thread_list[next_thread_id].event.set();
-			time.sleep(g.time_sleep);
-			self.event.wait();
 
 	def run(self):
 
@@ -76,24 +43,24 @@ class Radar(Thread):
 		print ("---- STARTING DETECTION ----\n");
 		intruder = 0;
 		while g.CONTINUE:
-			self.thread_traitment();
+			self.utils.thread_traitment(True, self.thread_list.index(self));
 			num_ennemi = 0;
 			for thread in self.thread_list:
-				#print ("Not empty thread_list : "+str(thread.id));
-				if thread.kind == "ennemi" and thread.state == drone_ennemi_ready and sqrt(
-						  (thread.X - (g.WIDTH_CANVAS)/2) * (thread.X - (g.WIDTH_CANVAS)/2) 
-			  		  	+ (thread.Y - (g.HEIGHT_CANVAS)) * (thread.Y - (g.HEIGHT_CANVAS))
-					  ) <= g.VIRTUAL_SCOPE:
-					num_ennemi = num_ennemi + 1;
-					intruder = 1;
-					ennemi_id = self.thread_list.index(thread);
-					thread.state = drone_ennemi_detected;
+				if g.CONTINUE:
+					if thread.kind == "ennemi" and thread.state == drone_ennemi_ready and sqrt(
+							  (thread.X - (g.WIDTH_CANVAS)/2) * (thread.X - (g.WIDTH_CANVAS)/2) 
+				  		  	+ (thread.Y - (g.HEIGHT_CANVAS)) * (thread.Y - (g.HEIGHT_CANVAS))
+						  ) <= g.VIRTUAL_SCOPE:
+						num_ennemi = num_ennemi + 1;
+						intruder = 1;
+						ennemi_id = thread.id;
+						thread.state = drone_ennemi_detected;
 
-					print("---- INTRUDER IN THE ZONE : "+ str(thread.kind)+" - "+str(num_ennemi)+" ----\n")
-				elif thread.kind == "ennemi" and thread.state == drone_out:
-					self.thread_list[thread.id].state_thread = "OFF";
-				elif thread.kind == "ennemi":
-					num_ennemi = num_ennemi + 1;
+						print("---- INTRUDER IN THE ZONE : "+ str(thread.kind)+" - "+str(num_ennemi)+" ----\n")
+					elif thread.kind == "ennemi" and thread.state == drone_out:
+						self.thread_list[self.thread_list.index(thread)].state_thread = "OFF";
+					elif thread.kind == "ennemi":
+						num_ennemi = num_ennemi + 1;
 
 			mission = 0;
 
@@ -108,32 +75,31 @@ class Radar(Thread):
 				test = 0;
 
 				for thread in self.thread_list:
-					if thread.kind == "ally" and thread.state == drone_ready and num < g.NUMBER_ALLY_DRONE:
-						print ("start drone"+str(thread.id))
+					if thread.kind == "ally" and thread.state == drone_ready and num < g.NUMBER_ALLY_DRONE and g.CONTINUE:
 						thread.state = drone_flying;
-						thread.traject = self.canvas.create_line(thread.X, thread.Y, self.thread_list[ennemi_id].X, self.thread_list[ennemi_id].Y, tags="line");
-						print ("ennemi_id = "+str(ennemi_id))
-						thread.target_id = ennemi_id;
+						for ennemi in self.thread_list:
+							if ennemi.kind == "ennemi" and ennemi.id == ennemi_id:
+								#thread.traject = self.canvas.create_line(thread.X, thread.Y, ennemi.X, ennemi.Y, tags="line");
+								thread.target = ennemi;
 						thread.state_thread = "ON";
+						#thread.daemon = True;
 						thread.start();
+						#thread.join();
 						self.label_list[thread.id].config(bg="yellow", text="DRONE "+str(thread.id+1)+"\nIn mission");
 						num += 1
 					i += 1;	
 				num = 0;
 			for thread in self.thread_list:
-				if thread.kind == "ally":
-					if thread.state != drone_ready:
-						#print ("thread.id+1 = "+str(thread.id+1)+" thread.state = "+str(thread.state))
+				if thread.kind == "ally" and g.CONTINUE:
+					if thread.state not in (drone_ready, drone_flying):
 						num_not_ready = num_not_ready + 1;
 
-			#print ("num_not_ready = "+str(num_not_ready))
 			if num_not_ready == g.NUMBER_DRONE:
 				self.repare_b.grid(row=15, column=2, columnspan=2);
 
 				test = 0;
 			intruder = 0;
-		
-			time.sleep(0.1);
+		self.state_thread = "OFF";
 		print ("---- ENDING DETECTION ----\n")
 
 

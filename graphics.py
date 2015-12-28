@@ -6,6 +6,7 @@ from drone import Drone
 from ennemi import Ennemi
 from radar import Radar
 from tkinter import *
+import threading
 import time
 import random
 
@@ -27,20 +28,35 @@ WIDTH_CANVAS          = WIDTH_ZONE * DIMENSION_COEFFICIENT;
 # Drone send while an attack
 NUMBER_ALLY_DRONE     = 2;
 # Initial stock of drone
-NUMBER_DRONE          = 2;
+NUMBER_DRONE          = 10;
 # General shutdown
 CONTINUE              = True;
-# Origine = position of the radar
+# Origine             = position of the radar
 ORIGINE_Y             = HEIGHT_ZONE * DIMENSION_COEFFICIENT;
 
-drone_out            = 0;
-drone_ready          = 2;
-drone_flying         = 3;
-drone_back           = 4;	# Drone back of a mission ready for inspection
-drone_ennemi_ready   = 7;
-drone_ennemi_escaped = 8;
+ALT_INITIAL_ENNEMI    = 50;
+
+# Font color
+FONT_COLOR            = "#1F973B";
+
+# Radar color 
+RADAR_COLOR           = "red";
+
+# Different drone state
+drone_out             = 0;
+drone_ready           = 2;
+drone_flying          = 3;
+drone_back            = 4;	# Drone back of a mission ready for inspection
+drone_ennemi_ready    = 7;
+drone_ennemi_escaped  = 8;
+
+NUMBER_ENNEMI         = 0;
 
 class Window():
+
+	def onObjectClick(self, event):                  
+		print('Got object click', event.x, event.y)
+		self.add_ennemi(event.x, event.y);
 
 	def get_repare_b(self):
 		return self.repare_b;
@@ -57,9 +73,6 @@ class Window():
 	def get_canvas(self):
 		return self.CANVAS_C;
 
-	def get_intruder_b(self):
-		return self.intruder_b;
-
 	def get_label_list(self):
 		return self.label_list;
 
@@ -73,15 +86,6 @@ class Window():
 			return self.create_arc(x-r, y-r, x+r, y+r, **kwargs)
 
 	Canvas.create_circle_arc = _create_circle_arc;
-
-	def create_ennemi_button(self):
-		# Kind of a drone
-		KIND_ENNEMI = "ennemi";
-		# Add "ennemi" button
-		self.logo = PhotoImage(file="images/cible.gif");
-		self.intruder_b = Button(self.win, text='Add target', width=50, height=50, command=lambda: self.add_ennemi());
-		self.intruder_b.config(image=self.logo);
-		self.intruder_b.grid(row=5, column=2, columnspan=2);
 
 	def create_drone_label(self):
 
@@ -116,7 +120,7 @@ class Window():
 	def create_simulation_zone(self):
 		# Simulation zone
 		with_scale_line = 3
-		self.CANVAS_C = Canvas(self.win, width = WIDTH_CANVAS, height = HEIGHT_CANVAS, bg ='#30A030', bd=5, relief=SUNKEN);
+		self.CANVAS_C = Canvas(self.win, width=WIDTH_CANVAS, height=HEIGHT_CANVAS, bg=FONT_COLOR, bd=5, relief=SUNKEN);
 		self.CANVAS_C.grid(row=3, column=1, rowspan=20, padx=10, pady=10);
 		self.CANVAS_C.create_line(20, ORIGINE_Y, 20 + 50, ORIGINE_Y, width=with_scale_line);
 		self.CANVAS_C.create_line(20, ORIGINE_Y - 5, 20, ORIGINE_Y + 5, width=with_scale_line);
@@ -125,7 +129,7 @@ class Window():
 
 	def create_title_label(self):
 		# Label title
-		self.main_l = Label(self.win, text='Drones interception simulation', font=("Purisa",12,"bold","italic"));
+		self.main_l = Label(self.win, text='Drones interception simulation', font=("Purisa",15,"bold","italic"));
 		self.main_l.grid(row=1, column=1, padx=10, pady=10);
 
 	def create_repare_button(self):
@@ -149,7 +153,7 @@ class Window():
 				Y = ORIGINE_Y - 20 * DIMENSION_COEFFICIENT;
 				Z = 0;
 
-				drone = Drone(self.CANVAS_C, thread.id, X, Y, Z, self.thread_list, self.label_list[thread.id], 0, -1);
+				drone = Drone(self.utils, self.CANVAS_C, thread.id, X, Y, Z, self.thread_list, self.label_list[thread.id]);
 				temp_append_list.append(drone);
 				thread.label.config(bg="green", text="DRONE "+str(thread.id+1)+"\nReady");
 				temp_pop_list.append(thread.id);
@@ -179,6 +183,7 @@ class Window():
 		self.nbDroneByAttack_s = Scale(self.win, from_=1, to=NUMBER_DRONE, orient=HORIZONTAL, length=200, command=lambda code=retour:self.updateSettingsAlly());
 		self.nbDroneByAttack_s.set(NUMBER_ALLY_DRONE)
 		self.nbDroneByAttack_s.grid(row=17, column=2, columnspan=2);
+
 		# Scope scale
 		self.scale_l = Label(self.win, text='Scope value :');
 		self.scale_l.grid(row=18, column=2, columnspan=2);
@@ -213,7 +218,7 @@ class Window():
 		r = 20;
 
 		while r < VIRTUAL_SCOPE:
-			circle = self.CANVAS_C.create_circle_arc(x0, y0, r, style='arc', outline="red", width=2, start=0, end=180, tags="arcs");
+			circle = self.CANVAS_C.create_circle_arc(x0, y0, r, style='arc', outline=RADAR_COLOR, width=2, start=0, end=180, tags="arcs");
 			self.CANVAS_C.tag_lower(circle);
 			r += 10;
 
@@ -225,37 +230,42 @@ class Window():
 		code = 1;
 		return code;
 
-	def add_ennemi(self):
+	def add_ennemi(self, X, Y):
 		
 		global WIDTH_CANVAS;
 
 		#self.intruder_b.config(state=DISABLED);
 		#self.scale_s.config(state=DISABLED);
 		
-		X = random.uniform(0, WIDTH_CANVAS);
-		Y = 0;
 		# Dimension in Z is in meter
-		Z = 200;
+		Z = ALT_INITIAL_ENNEMI;
 
-		ennemi = Ennemi(self.CANVAS_C, X, Y, Z, self.thread_list, []);
+		ennemi = Ennemi(self.utils, self.CANVAS_C, X, Y, Z, self.thread_list, []);
 		
 		self.thread_list.append(ennemi);
+		#ennemi.daemon = True;
 		ennemi.start();
+		#ennemi.join();
 
 	def exit(self, window, value):
 
 		global CONTINUE;
 		CONTINUE = value;
-		time.sleep(0.2);
+		#time.sleep(10);
 		#if window == self.win and self.settings:
 		#	self.settings.destroy();
+		for thread in self.thread_list:
+			thread.run = False;
+			print ("Next_thread_id : "+str(self.thread_list.index(thread))+" state_thread : "+str(self.thread_list[self.thread_list.index(thread)].state_thread)+" kind : "+str(self.thread_list[self.thread_list.index(thread)].kind)+" state : "+str(self.thread_list[self.thread_list.index(thread)].state))
+
+		print (threading.enumerate())
+		
 		window.destroy();
 
-	def __init__(self, thread_list):
-
-		self.thread_list = thread_list;
-
-		self.label_list  = [];
+	def __init__(self, utils, thread_list):
+		self.thread_list  = thread_list;
+		self.utils = utils;
+		self.label_list   = [];
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
@@ -271,13 +281,12 @@ class Window():
 
 		self.create_repare_button();
 		
-		self.create_ennemi_button();
-		
 		self.draw_radar_zone();
 		
 		self.create_quit_button();
 
 		self.settings();
+		self.CANVAS_C.bind('<ButtonPress-1>', self.onObjectClick)       
 
 		#---------------------------------------------------------------------------------------------------------------#
 		#---------------------------------------------------------------------------------------------------------------#
